@@ -1,0 +1,381 @@
+<div class="text-image-section-{{ section.id }} st_check-section--{{ section.id }}">
+  <div class="page-width">
+    <div class="text-image-wrapper-{{ section.id }}">
+      {%- if section.settings.image_position == 'left' -%}
+        {%- if section.settings.image != blank -%}
+          <div class="text-image-media-{{ section.id }}">
+            <img
+              src="{{ section.settings.image | image_url: width: 800 }}"
+              srcset="
+                {{ section.settings.image | image_url: width: 400 }} 400w,
+                {{ section.settings.image | image_url: width: 600 }} 600w,
+                {{ section.settings.image | image_url: width: 800 }} 800w
+              "
+              sizes="(min-width: 750px) 50vw, 100vw"
+              alt="{{ section.settings.image.alt | escape }}"
+              loading="lazy"
+              width="{{ section.settings.image.width }}"
+              height="{{ section.settings.image.height }}"
+            >
+          </div>
+        {%- endif -%}
+        <div class="text-image-content-{{ section.id }}">
+          {%- if section.settings.title != blank -%}
+            <h2 class="text-image-title-{{ section.id }} {{ section.settings.heading_size }}">
+              {{ section.settings.title }}
+            </h2>
+          {%- endif -%}
+          {%- if section.settings.text != blank -%}
+            <div class="text-image-text-{{ section.id }} rte">
+              {{ section.settings.text }}
+            </div>
+          {%- endif -%}
+        </div>
+      {%- else -%}
+        <div class="text-image-content-{{ section.id }}">
+          {%- if section.settings.title != blank -%}
+            <h2 class="text-image-title-{{ section.id }} {{ section.settings.heading_size }}">
+              {{ section.settings.title }}
+            </h2>
+          {%- endif -%}
+          {%- if section.settings.text != blank -%}
+            <div class="text-image-text-{{ section.id }} rte">
+              {{ section.settings.text }}
+            </div>
+          {%- endif -%}
+        </div>
+        {%- if section.settings.image != blank -%}
+          <div class="text-image-media-{{ section.id }}">
+            <img
+              src="{{ section.settings.image | image_url: width: 800 }}"
+              srcset="
+                {{ section.settings.image | image_url: width: 400 }} 400w,
+                {{ section.settings.image | image_url: width: 600 }} 600w,
+                {{ section.settings.image | image_url: width: 800 }} 800w
+              "
+              sizes="(min-width: 750px) 50vw, 100vw"
+              alt="{{ section.settings.image.alt | escape }}"
+              loading="lazy"
+              width="{{ section.settings.image.width }}"
+              height="{{ section.settings.image.height }}"
+            >
+          </div>
+        {%- endif -%}
+      {%- endif -%}
+    </div>
+  </div>
+</div>
+
+<script>
+(function() {
+  'use strict';
+  const sectionId = '{{ section.id }}';
+  const sectionSelector = '.st_check-section--' + sectionId;
+  
+  function checkAppEmbed() {
+    const embedMarker = document.getElementById('temply-app-embed-active');
+    const sectionElement = document.querySelector(sectionSelector);
+    
+    if (!sectionElement) return;
+    
+    if (!embedMarker) {
+      // Hide section completely, no warning banner
+      sectionElement.style.display = 'none';
+    }
+  }
+  
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', checkAppEmbed);
+  } else {
+    checkAppEmbed();
+  }
+})();
+</script>
+
+<style>
+  .text-image-section-{{ section.id }} {
+    {% if section.settings.background_color != blank %}
+      background-color: {{ section.settings.background_color }};
+    {% endif %}
+    {% if section.settings.background_gradient != blank %}
+      background: {{ section.settings.background_gradient }};
+    {% endif %}
+  }
+
+  .text-image-section-{{ section.id }} {
+    padding-top: {{ section.settings.padding_top | times: 0.75 | round: 0 }}px;
+    padding-bottom: {{ section.settings.padding_bottom | times: 0.75 | round: 0 }}px;
+  }
+
+  @media screen and (min-width: 750px) {
+    .text-image-section-{{ section.id }} {
+      padding-top: {{ section.settings.padding_top }}px;
+      padding-bottom: {{ section.settings.padding_bottom }}px;
+    }
+  }
+
+  .text-image-wrapper-{{ section.id }} {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 2rem;
+    align-items: {{ section.settings.vertical_alignment }};
+  }
+
+  @media screen and (min-width: 750px) {
+    .text-image-wrapper-{{ section.id }} {
+      grid-template-columns: repeat(2, 1fr);
+      gap: {{ section.settings.column_gap }}px;
+    }
+  }
+
+  .text-image-media-{{ section.id }} {
+    width: 100%;
+    {% if section.settings.image_radius > 0 %}
+      border-radius: {{ section.settings.image_radius }}px;
+      overflow: hidden;
+    {% endif %}
+  }
+
+  .text-image-media-{{ section.id }} img {
+    width: 100%;
+    height: auto;
+    display: block;
+    object-fit: cover;
+  }
+
+  .text-image-content-{{ section.id }} {
+    display: flex;
+    flex-direction: column;
+    justify-content: {{ section.settings.content_alignment }};
+    gap: 1.5rem;
+  }
+
+  .text-image-title-{{ section.id }} {
+    margin: 0;
+    font-weight: 700;
+    {% if section.settings.title_color != blank %}
+      color: {{ section.settings.title_color }};
+    {% endif %}
+  }
+
+  .text-image-text-{{ section.id }} {
+    margin: 0;
+    line-height: 1.6;
+    {% if section.settings.text_color != blank %}
+      color: {{ section.settings.text_color }};
+    {% endif %}
+  }
+
+  .text-image-text-{{ section.id }} p {
+    margin-top: 0;
+  }
+
+  .text-image-text-{{ section.id }} p:last-child {
+    margin-bottom: 0;
+  }
+
+  /* Mobile: Bild immer zuerst anzeigen */
+  @media screen and (max-width: 749px) {
+    .text-image-wrapper-{{ section.id }} {
+      grid-template-areas: 'media' 'content';
+    }
+    
+    .text-image-media-{{ section.id }} {
+      grid-area: media;
+    }
+    
+    .text-image-content-{{ section.id }} {
+      grid-area: content;
+    }
+  }
+</style>
+
+{% schema %}
+{
+  "name": "Text & Bild",
+  "tag": "section",
+  "class": "section",
+  "settings": [
+    {
+      "type": "header",
+      "content": "Inhalt"
+    },
+    {
+      "type": "text",
+      "id": "title",
+      "label": "Überschrift",
+      "default": "Kinderleichte Anwendung"
+    },
+    {
+      "type": "select",
+      "id": "heading_size",
+      "label": "Überschriftgröße",
+      "options": [
+        {
+          "value": "h0",
+          "label": "Groß"
+        },
+        {
+          "value": "h1",
+          "label": "Mittel"
+        },
+        {
+          "value": "h2",
+          "label": "Klein"
+        }
+      ],
+      "default": "h1"
+    },
+    {
+      "type": "richtext",
+      "id": "text",
+      "label": "Text",
+      "default": "<p>Dank neuer Formel reichen nur 2,5 g Pulver am Tag, wo bisher 15 g nötig waren.</p><p><strong>Anwendungsempfehlung Kollagen Intensiv:</strong></p><p>Rühre täglich 1 Stick Glow25® Kollagen Intensiv beispielsweise in Getränke oder Speisen ein und nimm eine Portion pro Tag zu dir.</p>"
+    },
+    {
+      "type": "image_picker",
+      "id": "image",
+      "label": "Bild"
+    },
+    {
+      "type": "range",
+      "id": "image_radius",
+      "min": 0,
+      "max": 50,
+      "step": 5,
+      "unit": "px",
+      "label": "Bild Ecken-Radius",
+      "default": 0
+    },
+    {
+      "type": "header",
+      "content": "Layout"
+    },
+    {
+      "type": "select",
+      "id": "image_position",
+      "label": "Bildposition",
+      "options": [
+        {
+          "value": "left",
+          "label": "Links"
+        },
+        {
+          "value": "right",
+          "label": "Rechts"
+        }
+      ],
+      "default": "right"
+    },
+    {
+      "type": "select",
+      "id": "vertical_alignment",
+      "label": "Vertikale Ausrichtung",
+      "options": [
+        {
+          "value": "start",
+          "label": "Oben"
+        },
+        {
+          "value": "center",
+          "label": "Mitte"
+        },
+        {
+          "value": "end",
+          "label": "Unten"
+        }
+      ],
+      "default": "center"
+    },
+    {
+      "type": "select",
+      "id": "content_alignment",
+      "label": "Inhaltsausrichtung",
+      "options": [
+        {
+          "value": "flex-start",
+          "label": "Oben"
+        },
+        {
+          "value": "center",
+          "label": "Mitte"
+        },
+        {
+          "value": "flex-end",
+          "label": "Unten"
+        }
+      ],
+      "default": "center"
+    },
+    {
+      "type": "range",
+      "id": "column_gap",
+      "min": 20,
+      "max": 100,
+      "step": 10,
+      "unit": "px",
+      "label": "Abstand zwischen Spalten",
+      "default": 60
+    },
+    {
+      "type": "header",
+      "content": "Farben"
+    },
+    {
+      "type": "color",
+      "id": "background_color",
+      "label": "Hintergrundfarbe"
+    },
+    {
+      "type": "color_background",
+      "id": "background_gradient",
+      "label": "Hintergrund (Farbe oder Gradient)"
+    },
+    {
+      "type": "color",
+      "id": "title_color",
+      "label": "Überschriftfarbe"
+    },
+    {
+      "type": "color",
+      "id": "text_color",
+      "label": "Textfarbe"
+    },
+    {
+      "type": "header",
+      "content": "Abstand"
+    },
+    {
+      "type": "range",
+      "id": "padding_top",
+      "min": 0,
+      "max": 100,
+      "step": 4,
+      "unit": "px",
+      "label": "Innenabstand oben",
+      "default": 64
+    },
+    {
+      "type": "range",
+      "id": "padding_bottom",
+      "min": 0,
+      "max": 100,
+      "step": 4,
+      "unit": "px",
+      "label": "Innenabstand unten",
+      "default": 64
+    }
+  ],
+  "presets": [
+    {
+      "name": "Text & Bild",
+      "settings": {
+        "title": "Kinderleichte Anwendung",
+        "text": "<p>Dank neuer Formel reichen nur 2,5 g Pulver am Tag, wo bisher 15 g nötig waren.</p><p><strong>Anwendungsempfehlung Kollagen Intensiv:</strong></p><p>Rühre täglich 1 Stick Glow25® Kollagen Intensiv beispielsweise in Getränke oder Speisen ein und nimm eine Portion pro Tag zu dir.</p>",
+        "image_position": "right"
+      }
+    }
+  ]
+}
+{% endschema %}
+

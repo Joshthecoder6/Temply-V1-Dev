@@ -1,0 +1,14 @@
+# Learn more: https://shopify.dev/docs/apps/app-extensions/configuration
+
+api_version = "2024-10"
+
+[[extensions]]
+uid = "7f820c13-e006-c1c8-55e9-35b6dfe53c194a8f708d"
+type = "theme"
+name = "Temply"
+handle = "temply"
+default_enabled = true
+
+[extensions.targeting]
+  [[extensions.targeting.target]]
+  target = "body"

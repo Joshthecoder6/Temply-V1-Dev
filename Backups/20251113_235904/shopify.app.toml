@@ -1,0 +1,30 @@
+# Learn more about configuring your app at https://shopify.dev/docs/apps/tools/cli/configuration
+
+client_id = "5bc41dbb1e7083796b65b705882a9d55"
+name = "Temply-dev-2"
+application_url = "https://preferences-axis-aaa-kijiji.trycloudflare.com"
+embedded = true
+
+[build]
+automatically_update_urls_on_dev = true
+
+[webhooks]
+api_version = "2026-01"
+
+  [[webhooks.subscriptions]]
+  topics = [ "app/uninstalled" ]
+  uri = "/webhooks/app/uninstalled"
+
+  [[webhooks.subscriptions]]
+  topics = [ "app/scopes_update" ]
+  uri = "/webhooks/app/scopes_update"
+
+[access_scopes]
+# Learn more at https://shopify.dev/docs/apps/tools/cli/configuration#access_scopes
+scopes = "write_products,read_themes,write_themes"
+
+[auth]
+redirect_urls = [ 
+  "https://preferences-axis-aaa-kijiji.trycloudflare.com/api/auth",
+  "https://preferences-axis-aaa-kijiji.trycloudflare.com/auth/callback"
+]

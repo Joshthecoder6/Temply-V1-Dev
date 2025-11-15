@@ -1,0 +1,86 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// Note that some adapters may set a maximum length for the String type by default, please ensure your strings are long
+// enough when changing adapters.
+// See https://www.prisma.io/docs/orm/reference/prisma-schema-reference#string for more information
+datasource db {
+  provider = "sqlite"
+  url      = "file:dev.sqlite"
+}
+
+model Session {
+  id            String    @id
+  shop          String
+  state         String
+  isOnline      Boolean   @default(false)
+  scope         String?
+  expires       DateTime?
+  accessToken   String
+  userId        BigInt?
+  firstName     String?
+  lastName      String?
+  email         String?
+  accountOwner  Boolean   @default(false)
+  locale        String?
+  collaborator  Boolean?  @default(false)
+  emailVerified Boolean?  @default(false)
+}
+
+model SocialProofSection {
+  id          String   @id @default(uuid())
+  shop        String
+  title       String
+  type        String   // testimonial, live-activity, trust-badge, counter
+  status      String   @default("active") // active, inactive
+  content     String?  // JSON string for flexible content
+  settings    String?  // JSON string for section-specific settings
+  position    String?  // top-left, top-right, bottom-left, bottom-right
+  views       Int      @default(0)
+  clicks      Int      @default(0)
+  conversions Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([shop])
+}
+
+model AppSettings {
+  id                String   @id @default(uuid())
+  shop              String   @unique
+  enabled           Boolean  @default(true)
+  appEmbedEnabled   Boolean  @default(false) // Track if app embed is activated in theme
+  showOnProductPages Boolean @default(true)
+  showOnCart        Boolean  @default(false)
+  showOnCheckout    Boolean  @default(false)
+  defaultPosition   String   @default("bottom-left")
+  animationSpeed    String   @default("medium") // slow, medium, fast
+  displayDuration   Int      @default(5000) // in milliseconds
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@index([shop])
+}
+
+model Template {
+  id             String   @id @default(uuid())
+  name           String
+  description    String?
+  category       String?  // home-page, product-page, landing-page, etc.
+  previewImage   String?  // URL to preview image
+  demoUrl        String?  // URL to demo store
+  isActive       Boolean  @default(true)
+  isFeatured     Boolean  @default(false)
+  sections       String?  // JSON array of section IDs included in this template
+  settings       String?  // JSON string for template settings
+  liquidCode     String?  // Liquid section code to be installed in theme
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([category])
+  @@index([isFeatured])
+}

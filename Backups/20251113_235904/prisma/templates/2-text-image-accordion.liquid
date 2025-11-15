@@ -1,0 +1,699 @@
+<div class="text-image-accordion-section-{{ section.id }} st_check-section--{{ section.id }}">
+  <div class="page-width">
+    <div class="text-image-accordion-wrapper-{{ section.id }}">
+      <!-- Linke Spalte: Titel, Text & Accordions -->
+      <div class="text-image-accordion-content-{{ section.id }}">
+        {%- if section.settings.title != blank -%}
+          <h2 class="text-image-accordion-title-{{ section.id }} {{ section.settings.heading_size }}">
+            {{ section.settings.title }}
+          </h2>
+        {%- endif -%}
+
+        {%- if section.settings.text != blank -%}
+          <div class="text-image-accordion-text-{{ section.id }} rte">
+            {{ section.settings.text }}
+          </div>
+        {%- endif -%}
+
+        {%- if section.blocks.size > 0 -%}
+          <div class="text-image-accordion-items-{{ section.id }}">
+            {%- for block in section.blocks -%}
+              {%- case block.type -%}
+                {%- when 'accordion_item' -%}
+                  <div class="accordion-item-{{ section.id }}" data-block-id="{{ block.id }}" {{ block.shopify_attributes }}>
+                    <details class="accordion-details-{{ section.id }}" {% if block.settings.open_by_default %}open{% endif %}>
+                      <summary class="accordion-summary-{{ section.id }}">
+                        <div class="accordion-question-wrapper-{{ section.id }}">
+                          <h3 class="accordion-question-{{ section.id }}">{{ block.settings.question }}</h3>
+                        </div>
+                        <div class="accordion-icon-{{ section.id }}">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="6 9 12 15 18 9"></polyline>
+                          </svg>
+                        </div>
+                      </summary>
+                      <div class="accordion-answer-wrapper-{{ section.id }}">
+                        <div class="accordion-answer-{{ section.id }} rte">
+                          {{ block.settings.answer }}
+                        </div>
+                      </div>
+                    </details>
+                  </div>
+              {%- endcase -%}
+            {%- endfor -%}
+          </div>
+        {%- endif -%}
+      </div>
+
+      <!-- Rechte Spalte: Bild -->
+      {%- if section.settings.image != blank -%}
+        <div class="text-image-accordion-media-{{ section.id }}">
+          <img
+            src="{{ section.settings.image | image_url: width: 800 }}"
+            srcset="
+              {{ section.settings.image | image_url: width: 400 }} 400w,
+              {{ section.settings.image | image_url: width: 600 }} 600w,
+              {{ section.settings.image | image_url: width: 800 }} 800w,
+              {{ section.settings.image | image_url: width: 1000 }} 1000w
+            "
+            sizes="(min-width: 750px) 50vw, 100vw"
+            alt="{{ section.settings.image.alt | escape }}"
+            loading="lazy"
+            width="{{ section.settings.image.width }}"
+            height="{{ section.settings.image.height }}"
+          >
+        </div>
+      {%- endif -%}
+    </div>
+  </div>
+</div>
+
+<script>
+(function() {
+  'use strict';
+  const sectionId = '{{ section.id }}';
+  const sectionSelector = '.st_check-section--' + sectionId;
+  
+  function checkAppEmbed() {
+    const embedMarker = document.getElementById('temply-app-embed-active');
+    const sectionElement = document.querySelector(sectionSelector);
+    
+    if (!sectionElement) return;
+    
+    if (!embedMarker) {
+      // Hide section completely, no warning banner
+      sectionElement.style.display = 'none';
+    }
+  }
+  
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', checkAppEmbed);
+  } else {
+    checkAppEmbed();
+  }
+})();
+</script>
+
+<style>
+  .text-image-accordion-section-{{ section.id }} {
+    {% if section.settings.background_gradient != blank %}
+      background: {{ section.settings.background_gradient }};
+    {% endif %}
+    {% if section.settings.text_color != blank %}
+      color: {{ section.settings.text_color }};
+    {% endif %}
+  }
+
+  .text-image-accordion-section-{{ section.id }} {
+    padding-top: {{ section.settings.padding_top | times: 0.75 | round: 0 }}px;
+    padding-bottom: {{ section.settings.padding_bottom | times: 0.75 | round: 0 }}px;
+  }
+
+  @media screen and (min-width: 750px) {
+    .text-image-accordion-section-{{ section.id }} {
+      padding-top: {{ section.settings.padding_top }}px;
+      padding-bottom: {{ section.settings.padding_bottom }}px;
+    }
+  }
+
+  .text-image-accordion-wrapper-{{ section.id }} {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 2rem;
+    align-items: {{ section.settings.vertical_alignment }};
+  }
+
+  /* Mobile: Bild zuerst */
+  @media screen and (max-width: 749px) {
+    .text-image-accordion-wrapper-{{ section.id }} {
+      grid-template-areas: 
+        'media'
+        'content';
+    }
+    
+    .text-image-accordion-content-{{ section.id }} {
+      grid-area: content;
+    }
+    
+    .text-image-accordion-media-{{ section.id }} {
+      grid-area: media;
+    }
+  }
+
+  /* Desktop: 2 Spalten Layout */
+  @media screen and (min-width: 750px) {
+    .text-image-accordion-wrapper-{{ section.id }} {
+      grid-template-columns: 1fr 1fr;
+      gap: {{ section.settings.column_gap }}px;
+    }
+  }
+
+  /* Content Bereich */
+  .text-image-accordion-content-{{ section.id }} {
+    display: flex;
+    flex-direction: column;
+    gap: {{ section.settings.content_gap }}px;
+  }
+
+  .text-image-accordion-title-{{ section.id }} {
+    margin: 0;
+    font-weight: 700;
+    {% if section.settings.title_color != blank %}
+      color: {{ section.settings.title_color }};
+    {% endif %}
+  }
+
+  .text-image-accordion-text-{{ section.id }} {
+    margin: 0;
+    line-height: 1.6;
+    {% if section.settings.text_color != blank %}
+      color: {{ section.settings.text_color }};
+    {% endif %}
+  }
+
+  .text-image-accordion-text-{{ section.id }} p:first-child {
+    margin-top: 0;
+  }
+
+  .text-image-accordion-text-{{ section.id }} p:last-child {
+    margin-bottom: 0;
+  }
+
+  /* Accordion Items */
+  .text-image-accordion-items-{{ section.id }} {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .accordion-item-{{ section.id }} {
+    display: block;
+    position: relative;
+  }
+
+  {% if section.settings.show_top_divider %}
+  .accordion-item-{{ section.id }}:first-child::before {
+    content: '';
+    display: block;
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: {{ section.settings.divider_thickness }}px;
+    background: {{ section.settings.divider_color }};
+    opacity: {{ section.settings.divider_opacity | divided_by: 100.0 }};
+  }
+  {% endif %}
+
+  .accordion-item-{{ section.id }}:not(:last-child)::after {
+    content: '';
+    display: block;
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: {{ section.settings.divider_thickness }}px;
+    background: {{ section.settings.divider_color }};
+    opacity: {{ section.settings.divider_opacity | divided_by: 100.0 }};
+  }
+
+  {% if section.settings.show_bottom_divider %}
+  .accordion-item-{{ section.id }}:last-child::after {
+    content: '';
+    display: block;
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: {{ section.settings.divider_thickness }}px;
+    background: {{ section.settings.divider_color }};
+    opacity: {{ section.settings.divider_opacity | divided_by: 100.0 }};
+  }
+  {% endif %}
+
+  .accordion-details-{{ section.id }} {
+    border: none;
+    margin: 0;
+  }
+
+  .accordion-summary-{{ section.id }} {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: {{ section.settings.accordion_padding }}px 0;
+    cursor: pointer;
+    list-style: none;
+    gap: 1.5rem;
+  }
+
+  .accordion-summary-{{ section.id }}::-webkit-details-marker {
+    display: none;
+  }
+
+  .accordion-question-wrapper-{{ section.id }} {
+    flex: 1;
+  }
+
+  .accordion-question-{{ section.id }} {
+    margin: 0;
+    font-size: {{ section.settings.question_font_size }}px;
+    font-weight: {{ section.settings.question_font_weight }};
+    line-height: 1.4;
+  }
+
+  .accordion-icon-{{ section.id }} {
+    flex-shrink: 0;
+    transition: transform 0.3s ease;
+    display: flex;
+    align-items: center;
+  }
+
+  .accordion-icon-{{ section.id }} svg {
+    width: 24px;
+    height: 24px;
+    {% if section.settings.text_color != blank %}
+      stroke: {{ section.settings.text_color }};
+    {% endif %}
+  }
+
+  .accordion-details-{{ section.id }}[open] .accordion-icon-{{ section.id }} {
+    transform: rotate(180deg);
+  }
+
+  .accordion-answer-wrapper-{{ section.id }} {
+    padding: 0 0 {{ section.settings.accordion_padding }}px 0;
+    animation: accordion-slideDown-{{ section.id }} 0.3s ease;
+  }
+
+  .accordion-answer-{{ section.id }} {
+    {% if section.settings.text_color != blank %}
+      color: {{ section.settings.text_color }};
+      opacity: 0.8;
+    {% else %}
+      color: rgba(var(--color-foreground), 0.8);
+    {% endif %}
+    line-height: 1.6;
+  }
+
+  .accordion-answer-{{ section.id }} p:first-child {
+    margin-top: 0;
+  }
+
+  .accordion-answer-{{ section.id }} p:last-child {
+    margin-bottom: 0;
+  }
+
+  @keyframes accordion-slideDown-{{ section.id }} {
+    from {
+      opacity: 0;
+      transform: translateY(-10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  /* Hover effects */
+  .accordion-summary-{{ section.id }}:hover {
+    opacity: 0.8;
+  }
+
+  /* Media Bereich */
+  .text-image-accordion-media-{{ section.id }} {
+    width: 100%;
+    {% if section.settings.image_radius > 0 %}
+      border-radius: {{ section.settings.image_radius }}px;
+      overflow: hidden;
+    {% endif %}
+  }
+
+  .text-image-accordion-media-{{ section.id }} img {
+    width: 100%;
+    height: auto;
+    display: block;
+    object-fit: cover;
+  }
+</style>
+
+<script>
+  (function() {
+    // Accordion functionality for section {{ section.id }}
+    class TextImageAccordion{{ section.id | replace: '-', '_' }} {
+      constructor() {
+        this.sectionId = '{{ section.id }}';
+        this.accordions = document.querySelectorAll('.accordion-item-' + this.sectionId);
+        this.init();
+      }
+
+      init() {
+        this.accordions.forEach((accordion) => {
+          const details = accordion.querySelector('.accordion-details-' + this.sectionId);
+          const summary = accordion.querySelector('.accordion-summary-' + this.sectionId);
+
+          if (summary && details) {
+            // Add keyboard support
+            summary.addEventListener('keydown', (e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                details.open = !details.open;
+              }
+            });
+
+            // Add accessibility attributes
+            summary.setAttribute('role', 'button');
+            summary.setAttribute('aria-expanded', details.open ? 'true' : 'false');
+
+            // Update aria-expanded on toggle
+            details.addEventListener('toggle', () => {
+              summary.setAttribute('aria-expanded', details.open ? 'true' : 'false');
+            });
+          }
+        });
+      }
+    }
+
+    // Initialize on DOM load
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', () => {
+        new TextImageAccordion{{ section.id | replace: '-', '_' }}();
+      });
+    } else {
+      new TextImageAccordion{{ section.id | replace: '-', '_' }}();
+    }
+
+    // Re-initialize on Shopify section events (theme editor)
+    document.addEventListener('shopify:section:load', (event) => {
+      if (event.detail.sectionId === '{{ section.id }}') {
+        new TextImageAccordion{{ section.id | replace: '-', '_' }}();
+      }
+    });
+  })();
+</script>
+
+{% schema %}
+{
+  "name": "Text, Bild & Accordion",
+  "tag": "section",
+  "class": "section",
+  "settings": [
+    {
+      "type": "header",
+      "content": "Inhalt"
+    },
+    {
+      "type": "text",
+      "id": "title",
+      "label": "Überschrift",
+      "default": "Was ist Glow25 Kollagen Pulver?"
+    },
+    {
+      "type": "select",
+      "id": "heading_size",
+      "label": "Überschriftgröße",
+      "options": [
+        {
+          "value": "h0",
+          "label": "Groß"
+        },
+        {
+          "value": "h1",
+          "label": "Mittel"
+        },
+        {
+          "value": "h2",
+          "label": "Klein"
+        }
+      ],
+      "default": "h1"
+    },
+    {
+      "type": "richtext",
+      "id": "text",
+      "label": "Text",
+      "default": "<p>Ein preisgekröntes, reines Kollagen mit Vitamin C.</p>"
+    },
+    {
+      "type": "header",
+      "content": "Bild"
+    },
+    {
+      "type": "image_picker",
+      "id": "image",
+      "label": "Bild"
+    },
+    {
+      "type": "range",
+      "id": "image_radius",
+      "min": 0,
+      "max": 50,
+      "step": 5,
+      "unit": "px",
+      "label": "Bild Ecken-Radius",
+      "default": 0
+    },
+    {
+      "type": "header",
+      "content": "Layout"
+    },
+    {
+      "type": "select",
+      "id": "vertical_alignment",
+      "label": "Vertikale Ausrichtung",
+      "options": [
+        {
+          "value": "start",
+          "label": "Oben"
+        },
+        {
+          "value": "center",
+          "label": "Mitte"
+        },
+        {
+          "value": "end",
+          "label": "Unten"
+        }
+      ],
+      "default": "start"
+    },
+    {
+      "type": "range",
+      "id": "column_gap",
+      "min": 20,
+      "max": 120,
+      "step": 10,
+      "unit": "px",
+      "label": "Abstand zwischen Spalten",
+      "default": 60
+    },
+    {
+      "type": "range",
+      "id": "content_gap",
+      "min": 16,
+      "max": 60,
+      "step": 4,
+      "unit": "px",
+      "label": "Abstand zwischen Elementen",
+      "default": 24
+    },
+    {
+      "type": "header",
+      "content": "Accordion Einstellungen"
+    },
+    {
+      "type": "range",
+      "id": "question_font_size",
+      "min": 14,
+      "max": 24,
+      "step": 1,
+      "unit": "px",
+      "label": "Fragenschriftgröße",
+      "default": 16
+    },
+    {
+      "type": "select",
+      "id": "question_font_weight",
+      "label": "Fragenschriftstärke",
+      "options": [
+        {
+          "value": "400",
+          "label": "Normal"
+        },
+        {
+          "value": "500",
+          "label": "Mittel"
+        },
+        {
+          "value": "600",
+          "label": "Halbfett"
+        },
+        {
+          "value": "700",
+          "label": "Fett"
+        }
+      ],
+      "default": "600"
+    },
+    {
+      "type": "range",
+      "id": "accordion_padding",
+      "min": 12,
+      "max": 48,
+      "step": 4,
+      "unit": "px",
+      "label": "Accordion Innenabstand",
+      "default": 20
+    },
+    {
+      "type": "header",
+      "content": "Divider Striche"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_top_divider",
+      "label": "Oberen Divider anzeigen",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "show_bottom_divider",
+      "label": "Unteren Divider anzeigen",
+      "default": true
+    },
+    {
+      "type": "range",
+      "id": "divider_thickness",
+      "min": 1,
+      "max": 10,
+      "step": 1,
+      "unit": "px",
+      "label": "Divider Dicke",
+      "default": 1
+    },
+    {
+      "type": "color",
+      "id": "divider_color",
+      "label": "Divider Farbe",
+      "default": "#000000"
+    },
+    {
+      "type": "range",
+      "id": "divider_opacity",
+      "min": 0,
+      "max": 100,
+      "step": 5,
+      "unit": "%",
+      "label": "Divider Transparenz",
+      "default": 10
+    },
+    {
+      "type": "header",
+      "content": "Farben"
+    },
+    {
+      "type": "color_background",
+      "id": "background_gradient",
+      "label": "Hintergrund (Farbe oder Gradient)"
+    },
+    {
+      "type": "color",
+      "id": "title_color",
+      "label": "Überschriftfarbe"
+    },
+    {
+      "type": "color",
+      "id": "text_color",
+      "label": "Textfarbe"
+    },
+    {
+      "type": "header",
+      "content": "Abstand"
+    },
+    {
+      "type": "range",
+      "id": "padding_top",
+      "min": 0,
+      "max": 100,
+      "step": 4,
+      "unit": "px",
+      "label": "Innenabstand oben",
+      "default": 64
+    },
+    {
+      "type": "range",
+      "id": "padding_bottom",
+      "min": 0,
+      "max": 100,
+      "step": 4,
+      "unit": "px",
+      "label": "Innenabstand unten",
+      "default": 64
+    }
+  ],
+  "blocks": [
+    {
+      "type": "accordion_item",
+      "name": "Accordion Element",
+      "settings": [
+        {
+          "type": "text",
+          "id": "question",
+          "label": "Frage",
+          "default": "Deine Frage hier"
+        },
+        {
+          "type": "richtext",
+          "id": "answer",
+          "label": "Antwort",
+          "default": "<p>Deine Antwort hier</p>"
+        },
+        {
+          "type": "checkbox",
+          "id": "open_by_default",
+          "label": "Standardmäßig geöffnet",
+          "default": false
+        }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "Text, Bild & Accordion",
+      "settings": {
+        "title": "Was ist Glow25 Kollagen Pulver?",
+        "text": "<p>Ein preisgekröntes, reines Kollagen mit Vitamin C.</p>"
+      },
+      "blocks": [
+        {
+          "type": "accordion_item",
+          "settings": {
+            "question": "Mit Vitamin C, ohne Konservierungsmittel ✅",
+            "answer": "<p>Verlass dich auf Glow25® Kollagen. Mit Vitamin C, das ohne Konservierungsmittel oder Füllstoffe hergestellt wird. Für ein neutrales, unverfälschtes Erlebnis bei jeder Anwendung.</p>"
+          }
+        },
+        {
+          "type": "accordion_item",
+          "settings": {
+            "question": "Geschmacksneutral 🍽️",
+            "answer": "<p>Glow25® Kollagen Pulver ist von Natur aus milch- und glutenfrei und wird regelmäßig von einem unabhängigen Labor auf Schadstoffe geprüft.</p>"
+          }
+        },
+        {
+          "type": "accordion_item",
+          "settings": {
+            "question": "Labor-bestätigte Reinheit 🔬",
+            "answer": "<p>Glow25® Kollagen Pulver ist von Natur aus milch- und glutenfrei und wird regelmäßig von einem unabhängigen Labor auf Schadstoffe geprüft.</p>"
+          }
+        },
+        {
+          "type": "accordion_item",
+          "settings": {
+            "question": "Mehrfacher Vergleichssieger* 🏆",
+            "answer": "<p>*Vergleich basiert auf Produkttests und Kundenbewertungen.</p>"
+          }
+        }
+      ]
+    }
+  ]
+}
+{% endschema %}
+

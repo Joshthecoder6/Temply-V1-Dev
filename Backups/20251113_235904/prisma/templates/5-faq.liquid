@@ -1,0 +1,590 @@
+<div class="faq-section-{{ section.id }} st_check-section--{{ section.id }}">
+  <div class="page-width">
+    {%- if section.settings.title != blank -%}
+      <div class="faq-header-{{ section.id }}">
+        <h2 class="faq-title-{{ section.id }} {{ section.settings.heading_size }}">
+          {{ section.settings.title }}
+        </h2>
+        {%- if section.settings.subtitle != blank -%}
+          <div class="faq-subtitle-{{ section.id }} rte">
+            {{ section.settings.subtitle }}
+          </div>
+        {%- endif -%}
+      </div>
+    {%- endif -%}
+
+    {%- if section.blocks.size > 0 -%}
+      <div class="faq-content-{{ section.id }}">
+        {%- for block in section.blocks -%}
+          {%- case block.type -%}
+            {%- when 'faq_item' -%}
+              <div class="faq-accordion-{{ section.id }}" data-block-id="{{ block.id }}" {{ block.shopify_attributes }}>
+                <details class="faq-details-{{ section.id }}" {% if block.settings.open_by_default %}open{% endif %}>
+                  <summary class="faq-summary-{{ section.id }}">
+                    <div class="faq-question-wrapper-{{ section.id }}">
+                      <h3 class="faq-question-{{ section.id }}">{{ block.settings.question }}</h3>
+                    </div>
+                    <div class="faq-icon-{{ section.id }}">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="6 9 12 15 18 9"></polyline>
+                      </svg>
+                    </div>
+                  </summary>
+                  <div class="faq-answer-wrapper-{{ section.id }}">
+                    <div class="faq-answer-{{ section.id }} rte">
+                      {{ block.settings.answer }}
+                    </div>
+                  </div>
+                </details>
+              </div>
+          {%- endcase -%}
+        {%- endfor -%}
+      </div>
+    {%- else -%}
+      <div class="faq-placeholder-{{ section.id }}">
+        <p>{{ section.settings.no_items_text }}</p>
+      </div>
+    {%- endif -%}
+  </div>
+</div>
+
+<script>
+(function() {
+  'use strict';
+  const sectionId = '{{ section.id }}';
+  const sectionSelector = '.st_check-section--' + sectionId;
+  
+  function checkAppEmbed() {
+    const embedMarker = document.getElementById('temply-app-embed-active');
+    const sectionElement = document.querySelector(sectionSelector);
+    
+    if (!sectionElement) return;
+    
+    if (!embedMarker) {
+      // Hide section completely, no warning banner
+      sectionElement.style.display = 'none';
+    }
+  }
+  
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', checkAppEmbed);
+  } else {
+    checkAppEmbed();
+  }
+})();
+</script>
+
+<style>
+  .faq-section-{{ section.id }} {
+    padding: var(--section-padding-vertical, 4rem) 0;
+    {% if section.settings.background_gradient != blank %}
+      background: {{ section.settings.background_gradient }};
+    {% endif %}
+    {% if section.settings.text_color != blank %}
+      color: {{ section.settings.text_color }};
+    {% endif %}
+  }
+
+  .faq-section-{{ section.id }} {
+    padding-top: {{ section.settings.padding_top | times: 0.75 | round: 0 }}px;
+    padding-bottom: {{ section.settings.padding_bottom | times: 0.75 | round: 0 }}px;
+  }
+
+  @media screen and (min-width: 750px) {
+    .faq-section-{{ section.id }} {
+      padding-top: {{ section.settings.padding_top }}px;
+      padding-bottom: {{ section.settings.padding_bottom }}px;
+    }
+  }
+
+  .faq-header-{{ section.id }} {
+    text-align: {{ section.settings.heading_alignment }};
+    margin-bottom: 3rem;
+  }
+
+  .faq-title-{{ section.id }} {
+    margin: 0 0 1rem 0;
+    font-weight: 700;
+  }
+
+  .faq-subtitle-{{ section.id }} {
+    margin: 0;
+    {% if section.settings.text_color != blank %}
+      color: {{ section.settings.text_color }};
+      opacity: 0.7;
+    {% else %}
+      color: rgba(var(--color-foreground), 0.7);
+    {% endif %}
+  }
+
+  .faq-content-{{ section.id }} {
+    max-width: {{ section.settings.content_width }}px;
+    margin: 0 auto;
+  }
+
+  .faq-accordion-{{ section.id }} {
+    display: block;
+    position: relative;
+  }
+
+  {% if section.settings.show_top_divider %}
+  .faq-accordion-{{ section.id }}:first-child::before {
+    content: '';
+    display: block;
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: {{ section.settings.divider_thickness }}px;
+    background: {{ section.settings.divider_color }};
+    opacity: {{ section.settings.divider_opacity | divided_by: 100.0 }};
+  }
+  {% endif %}
+
+  .faq-accordion-{{ section.id }}:not(:last-child)::after {
+    content: '';
+    display: block;
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: {{ section.settings.divider_thickness }}px;
+    background: {{ section.settings.divider_color }};
+    opacity: {{ section.settings.divider_opacity | divided_by: 100.0 }};
+  }
+
+  {% if section.settings.show_bottom_divider %}
+  .faq-accordion-{{ section.id }}:last-child::after {
+    content: '';
+    display: block;
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: {{ section.settings.divider_thickness }}px;
+    background: {{ section.settings.divider_color }};
+    opacity: {{ section.settings.divider_opacity | divided_by: 100.0 }};
+  }
+  {% endif %}
+
+  .faq-details-{{ section.id }} {
+    border: none;
+    margin: 0;
+  }
+
+  .faq-summary-{{ section.id }} {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: {{ section.settings.accordion_padding }}px 0;
+    cursor: pointer;
+    list-style: none;
+    gap: 2rem;
+  }
+
+  .faq-summary-{{ section.id }}::-webkit-details-marker {
+    display: none;
+  }
+
+  .faq-question-wrapper-{{ section.id }} {
+    flex: 1;
+  }
+
+  .faq-question-{{ section.id }} {
+    margin: 0;
+    font-size: {{ section.settings.question_font_size }}px;
+    font-weight: {{ section.settings.question_font_weight }};
+    line-height: 1.4;
+  }
+
+  .faq-icon-{{ section.id }} {
+    flex-shrink: 0;
+    transition: transform 0.3s ease;
+    display: flex;
+    align-items: center;
+  }
+
+  .faq-icon-{{ section.id }} svg {
+    width: 24px;
+    height: 24px;
+    {% if section.settings.text_color != blank %}
+      stroke: {{ section.settings.text_color }};
+    {% endif %}
+  }
+
+  .faq-details-{{ section.id }}[open] .faq-icon-{{ section.id }} {
+    transform: rotate(180deg);
+  }
+
+  .faq-answer-wrapper-{{ section.id }} {
+    padding: 0 0 {{ section.settings.accordion_padding }}px 0;
+    animation: faq-slideDown-{{ section.id }} 0.3s ease;
+  }
+
+  .faq-answer-{{ section.id }} {
+    {% if section.settings.text_color != blank %}
+      color: {{ section.settings.text_color }};
+      opacity: 0.8;
+    {% else %}
+      color: rgba(var(--color-foreground), 0.8);
+    {% endif %}
+    line-height: 1.6;
+  }
+
+  .faq-answer-{{ section.id }} p:first-child {
+    margin-top: 0;
+  }
+
+  .faq-answer-{{ section.id }} p:last-child {
+    margin-bottom: 0;
+  }
+
+  @keyframes faq-slideDown-{{ section.id }} {
+    from {
+      opacity: 0;
+      transform: translateY(-10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .faq-placeholder-{{ section.id }} {
+    text-align: center;
+    padding: 3rem 1rem;
+    {% if section.settings.text_color != blank %}
+      color: {{ section.settings.text_color }};
+      opacity: 0.5;
+    {% else %}
+      color: rgba(var(--color-foreground), 0.5);
+    {% endif %}
+  }
+
+  /* Hover effects */
+  .faq-summary-{{ section.id }}:hover {
+    opacity: 0.8;
+  }
+</style>
+
+<script>
+  (function() {
+    // FAQ Accordion functionality for section {{ section.id }}
+    class FaqAccordion{{ section.id | replace: '-', '_' }} {
+      constructor() {
+        this.sectionId = '{{ section.id }}';
+        this.accordions = document.querySelectorAll('.faq-accordion-' + this.sectionId);
+        this.init();
+      }
+
+      init() {
+        this.accordions.forEach((accordion) => {
+          const details = accordion.querySelector('.faq-details-' + this.sectionId);
+          const summary = accordion.querySelector('.faq-summary-' + this.sectionId);
+
+          if (summary && details) {
+            // Add keyboard support
+            summary.addEventListener('keydown', (e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                details.open = !details.open;
+              }
+            });
+
+            // Add accessibility attributes
+            summary.setAttribute('role', 'button');
+            summary.setAttribute('aria-expanded', details.open ? 'true' : 'false');
+
+            // Update aria-expanded on toggle
+            details.addEventListener('toggle', () => {
+              summary.setAttribute('aria-expanded', details.open ? 'true' : 'false');
+            });
+          }
+        });
+      }
+    }
+
+    // Initialize on DOM load
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', () => {
+        new FaqAccordion{{ section.id | replace: '-', '_' }}();
+      });
+    } else {
+      new FaqAccordion{{ section.id | replace: '-', '_' }}();
+    }
+
+    // Re-initialize on Shopify section events (theme editor)
+    document.addEventListener('shopify:section:load', (event) => {
+      if (event.detail.sectionId === '{{ section.id }}') {
+        new FaqAccordion{{ section.id | replace: '-', '_' }}();
+      }
+    });
+  })();
+</script>
+
+{% schema %}
+{
+  "name": "FAQ",
+  "tag": "section",
+  "class": "section",
+  "settings": [
+    {
+      "type": "header",
+      "content": "Überschrift"
+    },
+    {
+      "type": "text",
+      "id": "title",
+      "label": "Überschrift",
+      "default": "Häufig gestellte Fragen"
+    },
+    {
+      "type": "richtext",
+      "id": "subtitle",
+      "label": "Unterüberschrift"
+    },
+    {
+      "type": "select",
+      "id": "heading_size",
+      "label": "Überschriftgröße",
+      "options": [
+        {
+          "value": "h0",
+          "label": "Groß"
+        },
+        {
+          "value": "h1",
+          "label": "Mittel"
+        },
+        {
+          "value": "h2",
+          "label": "Klein"
+        }
+      ],
+      "default": "h1"
+    },
+    {
+      "type": "select",
+      "id": "heading_alignment",
+      "label": "Überschrift Ausrichtung",
+      "options": [
+        {
+          "value": "left",
+          "label": "Links"
+        },
+        {
+          "value": "center",
+          "label": "Zentriert"
+        },
+        {
+          "value": "right",
+          "label": "Rechts"
+        }
+      ],
+      "default": "center"
+    },
+    {
+      "type": "header",
+      "content": "Farben & Hintergrund"
+    },
+    {
+      "type": "color_background",
+      "id": "background_gradient",
+      "label": "Hintergrund (Farbe oder Gradient)"
+    },
+    {
+      "type": "color",
+      "id": "text_color",
+      "label": "Textfarbe"
+    },
+    {
+      "type": "header",
+      "content": "Layout"
+    },
+    {
+      "type": "range",
+      "id": "content_width",
+      "min": 600,
+      "max": 1400,
+      "step": 50,
+      "unit": "px",
+      "label": "Inhaltsbreite",
+      "default": 900
+    },
+    {
+      "type": "range",
+      "id": "question_font_size",
+      "min": 14,
+      "max": 32,
+      "step": 1,
+      "unit": "px",
+      "label": "Fragenschriftgröße",
+      "default": 18
+    },
+    {
+      "type": "select",
+      "id": "question_font_weight",
+      "label": "Fragenschriftstärke",
+      "options": [
+        {
+          "value": "400",
+          "label": "Normal"
+        },
+        {
+          "value": "500",
+          "label": "Mittel"
+        },
+        {
+          "value": "600",
+          "label": "Halbfett"
+        },
+        {
+          "value": "700",
+          "label": "Fett"
+        }
+      ],
+      "default": "600"
+    },
+    {
+      "type": "range",
+      "id": "accordion_padding",
+      "min": 12,
+      "max": 48,
+      "step": 4,
+      "unit": "px",
+      "label": "Accordion Innenabstand",
+      "default": 24
+    },
+    {
+      "type": "header",
+      "content": "Divider Striche"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_top_divider",
+      "label": "Oberen Divider anzeigen",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "show_bottom_divider",
+      "label": "Unteren Divider anzeigen",
+      "default": true
+    },
+    {
+      "type": "range",
+      "id": "divider_thickness",
+      "min": 1,
+      "max": 10,
+      "step": 1,
+      "unit": "px",
+      "label": "Divider Dicke",
+      "default": 1
+    },
+    {
+      "type": "color",
+      "id": "divider_color",
+      "label": "Divider Farbe",
+      "default": "#000000"
+    },
+    {
+      "type": "range",
+      "id": "divider_opacity",
+      "min": 0,
+      "max": 100,
+      "step": 5,
+      "unit": "%",
+      "label": "Divider Transparenz",
+      "default": 10
+    },
+    {
+      "type": "header",
+      "content": "Texte"
+    },
+    {
+      "type": "text",
+      "id": "no_items_text",
+      "label": "Text wenn keine FAQ vorhanden",
+      "default": "Fügen Sie FAQ-Elemente hinzu, um sie hier anzuzeigen."
+    },
+    {
+      "type": "header",
+      "content": "Abstand"
+    },
+    {
+      "type": "range",
+      "id": "padding_top",
+      "min": 0,
+      "max": 100,
+      "step": 4,
+      "unit": "px",
+      "label": "Innenabstand oben",
+      "default": 64
+    },
+    {
+      "type": "range",
+      "id": "padding_bottom",
+      "min": 0,
+      "max": 100,
+      "step": 4,
+      "unit": "px",
+      "label": "Innenabstand unten",
+      "default": 64
+    }
+  ],
+  "blocks": [
+    {
+      "type": "faq_item",
+      "name": "FAQ Element",
+      "settings": [
+        {
+          "type": "text",
+          "id": "question",
+          "label": "Frage",
+          "default": "Ihre Frage hier"
+        },
+        {
+          "type": "richtext",
+          "id": "answer",
+          "label": "Antwort",
+          "default": "<p>Ihre Antwort hier</p>"
+        },
+        {
+          "type": "checkbox",
+          "id": "open_by_default",
+          "label": "Standardmäßig geöffnet",
+          "default": false
+        }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "FAQ",
+      "blocks": [
+        {
+          "type": "faq_item",
+          "settings": {
+            "question": "Wie funktioniert die Zufriedenheits-Garantie?",
+            "answer": "<p>Fügen Sie hier Ihre Antwort hinzu</p>"
+          }
+        },
+        {
+          "type": "faq_item",
+          "settings": {
+            "question": "Wie unterscheidet sich Kollagen Intensiv von Glow25 Kollagen oder Kollagen Plus?",
+            "answer": "<p>Fügen Sie hier Ihre Antwort hinzu</p>"
+          }
+        },
+        {
+          "type": "faq_item",
+          "settings": {
+            "question": "Kann ich Kollagen Intensiv zusammen mit meinen aktuellen Glow25-Produkten nehmen?",
+            "answer": "<p>Fügen Sie hier Ihre Antwort hinzu</p>"
+          }
+        }
+      ]
+    }
+  ]
+}
+{% endschema %}

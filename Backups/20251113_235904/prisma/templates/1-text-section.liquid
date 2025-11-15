@@ -1,0 +1,473 @@
+<div class="text-section-{{ section.id }} st_check-section--{{ section.id }}">
+  <div class="page-width">
+    <div class="text-section-wrapper-{{ section.id }}">
+      <div class="text-section-content-{{ section.id }}">
+        {%- if section.settings.title != blank -%}
+          <h2 class="text-section-title-{{ section.id }} {{ section.settings.heading_size }}">
+            {{ section.settings.title }}
+          </h2>
+        {%- endif -%}
+
+        {%- if section.settings.text != blank -%}
+          <div class="text-section-text-{{ section.id }} rte">
+            {{ section.settings.text }}
+          </div>
+        {%- endif -%}
+
+        {%- if section.settings.button_label != blank and section.settings.button_link != blank -%}
+          <div class="text-section-button-wrapper-{{ section.id }}">
+            <a href="{{ section.settings.button_link }}" class="text-section-button-{{ section.id }}">
+              {{ section.settings.button_label }}
+            </a>
+          </div>
+        {%- endif -%}
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function() {
+  'use strict';
+  const sectionId = '{{ section.id }}';
+  const sectionSelector = '.st_check-section--' + sectionId;
+  
+  function checkAppEmbed() {
+    const embedMarker = document.getElementById('temply-app-embed-active');
+    const sectionElement = document.querySelector(sectionSelector);
+    
+    if (!sectionElement) return;
+    
+    if (!embedMarker) {
+      // Hide section completely, no warning banner
+      sectionElement.style.display = 'none';
+    }
+  }
+  
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', checkAppEmbed);
+  } else {
+    checkAppEmbed();
+  }
+})();
+</script>
+
+<style>
+  .text-section-{{ section.id }} {
+    {% if section.settings.background_gradient != blank %}
+      background: {{ section.settings.background_gradient }};
+    {% endif %}
+    {% if section.settings.section_background_color != blank and section.settings.background_gradient == blank %}
+      background-color: {{ section.settings.section_background_color }};
+    {% endif %}
+  }
+
+  .text-section-{{ section.id }} {
+    padding-top: {{ section.settings.padding_top | times: 0.75 | round: 0 }}px;
+    padding-bottom: {{ section.settings.padding_bottom | times: 0.75 | round: 0 }}px;
+  }
+
+  @media screen and (min-width: 750px) {
+    .text-section-{{ section.id }} {
+      padding-top: {{ section.settings.padding_top }}px;
+      padding-bottom: {{ section.settings.padding_bottom }}px;
+    }
+  }
+
+  .text-section-wrapper-{{ section.id }} {
+    display: flex;
+    justify-content: {{ section.settings.content_horizontal_alignment }};
+    align-items: {{ section.settings.content_vertical_alignment }};
+  }
+
+  .text-section-content-{{ section.id }} {
+    max-width: {{ section.settings.max_width }}px;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: {{ section.settings.content_gap }}px;
+    text-align: {{ section.settings.text_alignment }};
+  }
+
+  .text-section-title-{{ section.id }} {
+    margin: 0;
+    font-weight: 700;
+    {% if section.settings.title_color != blank %}
+      color: {{ section.settings.title_color }};
+    {% endif %}
+  }
+
+  .text-section-text-{{ section.id }} {
+    margin: 0;
+    line-height: 1.6;
+    {% if section.settings.text_color != blank %}
+      color: {{ section.settings.text_color }};
+    {% endif %}
+  }
+
+  .text-section-text-{{ section.id }} p:first-child {
+    margin-top: 0;
+  }
+
+  .text-section-text-{{ section.id }} p:last-child {
+    margin-bottom: 0;
+  }
+
+  /* Button Styles */
+  .text-section-button-wrapper-{{ section.id }} {
+    display: flex;
+    {% if section.settings.text_alignment == 'center' %}
+      justify-content: center;
+    {% elsif section.settings.text_alignment == 'right' %}
+      justify-content: flex-end;
+    {% else %}
+      justify-content: flex-start;
+    {% endif %}
+  }
+
+  .text-section-button-{{ section.id }} {
+    display: inline-block;
+    padding: {{ section.settings.button_padding_vertical }}px {{ section.settings.button_padding_horizontal }}px;
+    font-size: {{ section.settings.button_font_size }}px;
+    font-weight: {{ section.settings.button_font_weight }};
+    text-decoration: none;
+    border-radius: {{ section.settings.button_radius }}px;
+    transition: all 0.3s ease;
+    cursor: pointer;
+    
+    {% if section.settings.button_background != blank %}
+      background: {{ section.settings.button_background }};
+    {% else %}
+      background: #000;
+    {% endif %}
+    
+    {% if section.settings.button_text_color != blank %}
+      color: {{ section.settings.button_text_color }};
+    {% else %}
+      color: #fff;
+    {% endif %}
+    
+    {% if section.settings.button_border_width > 0 %}
+      border: {{ section.settings.button_border_width }}px solid {{ section.settings.button_border_color }};
+    {% else %}
+      border: none;
+    {% endif %}
+  }
+
+  .text-section-button-{{ section.id }}:hover {
+    {% if section.settings.button_hover_background != blank %}
+      background: {{ section.settings.button_hover_background }};
+    {% else %}
+      opacity: 0.8;
+    {% endif %}
+    
+    {% if section.settings.button_hover_text_color != blank %}
+      color: {{ section.settings.button_hover_text_color }};
+    {% endif %}
+  }
+</style>
+
+{% schema %}
+{
+  "name": "Text Section",
+  "tag": "section",
+  "class": "section",
+  "settings": [
+    {
+      "type": "header",
+      "content": "Inhalt"
+    },
+    {
+      "type": "text",
+      "id": "title",
+      "label": "Überschrift",
+      "default": "Deine Überschrift"
+    },
+    {
+      "type": "select",
+      "id": "heading_size",
+      "label": "Überschriftgröße",
+      "options": [
+        {
+          "value": "h0",
+          "label": "Groß"
+        },
+        {
+          "value": "h1",
+          "label": "Mittel"
+        },
+        {
+          "value": "h2",
+          "label": "Klein"
+        }
+      ],
+      "default": "h1"
+    },
+    {
+      "type": "richtext",
+      "id": "text",
+      "label": "Text",
+      "default": "<p>Hier kannst du deinen Text einfügen. Du kannst auch <strong>fetten</strong> oder <em>kursiven</em> Text verwenden.</p>"
+    },
+    {
+      "type": "header",
+      "content": "Button (optional)"
+    },
+    {
+      "type": "text",
+      "id": "button_label",
+      "label": "Button Text"
+    },
+    {
+      "type": "url",
+      "id": "button_link",
+      "label": "Button Link"
+    },
+    {
+      "type": "range",
+      "id": "button_font_size",
+      "min": 12,
+      "max": 24,
+      "step": 1,
+      "unit": "px",
+      "label": "Button Schriftgröße",
+      "default": 16
+    },
+    {
+      "type": "select",
+      "id": "button_font_weight",
+      "label": "Button Schriftstärke",
+      "options": [
+        {
+          "value": "400",
+          "label": "Normal"
+        },
+        {
+          "value": "500",
+          "label": "Mittel"
+        },
+        {
+          "value": "600",
+          "label": "Halbfett"
+        },
+        {
+          "value": "700",
+          "label": "Fett"
+        }
+      ],
+      "default": "600"
+    },
+    {
+      "type": "range",
+      "id": "button_padding_vertical",
+      "min": 8,
+      "max": 32,
+      "step": 2,
+      "unit": "px",
+      "label": "Button Padding Vertikal",
+      "default": 12
+    },
+    {
+      "type": "range",
+      "id": "button_padding_horizontal",
+      "min": 16,
+      "max": 64,
+      "step": 4,
+      "unit": "px",
+      "label": "Button Padding Horizontal",
+      "default": 32
+    },
+    {
+      "type": "range",
+      "id": "button_radius",
+      "min": 0,
+      "max": 50,
+      "step": 2,
+      "unit": "px",
+      "label": "Button Ecken-Radius",
+      "default": 4
+    },
+    {
+      "type": "color_background",
+      "id": "button_background",
+      "label": "Button Hintergrund"
+    },
+    {
+      "type": "color",
+      "id": "button_text_color",
+      "label": "Button Textfarbe",
+      "default": "#ffffff"
+    },
+    {
+      "type": "color_background",
+      "id": "button_hover_background",
+      "label": "Button Hover Hintergrund"
+    },
+    {
+      "type": "color",
+      "id": "button_hover_text_color",
+      "label": "Button Hover Textfarbe"
+    },
+    {
+      "type": "range",
+      "id": "button_border_width",
+      "min": 0,
+      "max": 5,
+      "step": 1,
+      "unit": "px",
+      "label": "Button Rahmendicke",
+      "default": 0
+    },
+    {
+      "type": "color",
+      "id": "button_border_color",
+      "label": "Button Rahmenfarbe",
+      "default": "#000000"
+    },
+    {
+      "type": "header",
+      "content": "Layout"
+    },
+    {
+      "type": "range",
+      "id": "max_width",
+      "min": 400,
+      "max": 1400,
+      "step": 50,
+      "unit": "px",
+      "label": "Maximale Textbreite",
+      "default": 800
+    },
+    {
+      "type": "select",
+      "id": "text_alignment",
+      "label": "Textausrichtung",
+      "options": [
+        {
+          "value": "left",
+          "label": "Links"
+        },
+        {
+          "value": "center",
+          "label": "Zentriert"
+        },
+        {
+          "value": "right",
+          "label": "Rechts"
+        }
+      ],
+      "default": "center"
+    },
+    {
+      "type": "select",
+      "id": "content_horizontal_alignment",
+      "label": "Horizontale Ausrichtung",
+      "options": [
+        {
+          "value": "flex-start",
+          "label": "Links"
+        },
+        {
+          "value": "center",
+          "label": "Zentriert"
+        },
+        {
+          "value": "flex-end",
+          "label": "Rechts"
+        }
+      ],
+      "default": "center"
+    },
+    {
+      "type": "select",
+      "id": "content_vertical_alignment",
+      "label": "Vertikale Ausrichtung",
+      "options": [
+        {
+          "value": "flex-start",
+          "label": "Oben"
+        },
+        {
+          "value": "center",
+          "label": "Mitte"
+        },
+        {
+          "value": "flex-end",
+          "label": "Unten"
+        }
+      ],
+      "default": "center"
+    },
+    {
+      "type": "range",
+      "id": "content_gap",
+      "min": 16,
+      "max": 60,
+      "step": 4,
+      "unit": "px",
+      "label": "Abstand zwischen Elementen",
+      "default": 24
+    },
+    {
+      "type": "header",
+      "content": "Farben"
+    },
+    {
+      "type": "color",
+      "id": "section_background_color",
+      "label": "Hintergrundfarbe"
+    },
+    {
+      "type": "color_background",
+      "id": "background_gradient",
+      "label": "Hintergrund (Farbe oder Gradient)"
+    },
+    {
+      "type": "color",
+      "id": "title_color",
+      "label": "Überschriftfarbe"
+    },
+    {
+      "type": "color",
+      "id": "text_color",
+      "label": "Textfarbe"
+    },
+    {
+      "type": "header",
+      "content": "Abstand"
+    },
+    {
+      "type": "range",
+      "id": "padding_top",
+      "min": 0,
+      "max": 100,
+      "step": 4,
+      "unit": "px",
+      "label": "Innenabstand oben",
+      "default": 64
+    },
+    {
+      "type": "range",
+      "id": "padding_bottom",
+      "min": 0,
+      "max": 100,
+      "step": 4,
+      "unit": "px",
+      "label": "Innenabstand unten",
+      "default": 64
+    }
+  ],
+  "presets": [
+    {
+      "name": "Text Section",
+      "settings": {
+        "title": "Deine Überschrift",
+        "text": "<p>Hier kannst du deinen Text einfügen. Du kannst auch <strong>fetten</strong> oder <em>kursiven</em> Text verwenden.</p>",
+        "text_alignment": "center",
+        "max_width": 800
+      }
+    }
+  ]
+}
+{% endschema %}
+

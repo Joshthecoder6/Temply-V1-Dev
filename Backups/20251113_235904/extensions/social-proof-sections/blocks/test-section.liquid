@@ -1,0 +1,146 @@
+{% comment %} Temply Test Section {% endcomment %}
+
+<style>
+  {%- assign main_font = block.settings.font_settings -%}
+  {%- assign headline_font = block.settings.headline_font -%}
+  {{ main_font | font_face }}
+  {{ headline_font | font_face }}
+
+  .temply-test-section {
+    max-width: {{block.settings.max_block_width}}rem;
+    margin: {{ block.settings.margin_top }}px auto {{ block.settings.margin_bottom }}px;
+    padding: 48px 20px;
+    text-align: center;
+  }
+
+  .temply-test-section h2 {
+    color: {{ block.settings.headline_text_color }};
+    font-family: {{ headline_font.family }}, {{ headline_font.fallback_families }};
+    font-weight: {{ headline_font.weight }};
+    font-size: {{ block.settings.headline_text_size }}px;
+    margin-bottom: 30px;
+  }
+
+  .temply-test-section img {
+    max-width: 100%;
+    height: auto;
+    max-height: 600px;
+    object-fit: contain;
+  }
+</style>
+
+<div class="temply-test-section st_check-section--{{ section.id }}">
+  <h2>{{ block.settings.headline_text }}</h2>
+  
+  {% if block.settings.main_image %}
+    {{ block.settings.main_image | image_url: width: 800 | image_tag: alt: block.settings.headline_text }}
+  {% else %}
+    <img
+      src="https://cdn.shopify.com/s/files/1/0799/5880/2740/files/example_product_cropped.png?v=1718548170"
+      width="800"
+      height="800"
+      alt="Product image"
+    >
+  {% endif %}
+</div>
+
+<script>
+(function() {
+  'use strict';
+  const sectionId = '{{ section.id }}';
+  const sectionSelector = '.st_check-section--' + sectionId;
+  
+  function checkAppEmbed() {
+    const embedMarker = document.getElementById('temply-app-embed-active');
+    const sectionElement = document.querySelector(sectionSelector);
+    
+    if (!sectionElement) return;
+    
+    if (!embedMarker) {
+      // Hide section completely, no warning banner
+      sectionElement.style.display = 'none';
+    }
+  }
+  
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', checkAppEmbed);
+  } else {
+    checkAppEmbed();
+  }
+})();
+</script>
+
+{% schema %}
+{
+  "name": "Test Section - Benefits",
+  "target": "section",
+  "settings": [
+    {
+      "type": "image_picker",
+      "id": "main_image",
+      "label": "Main Image"
+    },
+    {
+      "type": "text",
+      "id": "headline_text",
+      "label": "Headline",
+      "default": "Why Temply?"
+    },
+    {
+      "type": "range",
+      "id": "headline_text_size",
+      "label": "Headline Size",
+      "min": 30,
+      "max": 100,
+      "step": 1,
+      "default": 48
+    },
+    {
+      "type": "range",
+      "id": "max_block_width",
+      "min": 110,
+      "max": 180,
+      "step": 10,
+      "default": 140,
+      "label": "Maximum Width"
+    },
+    {
+      "type": "color",
+      "id": "headline_text_color",
+      "label": "Headline Color",
+      "default": "#000000"
+    },
+    {
+      "type": "font_picker",
+      "id": "font_settings",
+      "label": "Body Font",
+      "default": "poppins_n4"
+    },
+    {
+      "type": "font_picker",
+      "id": "headline_font",
+      "label": "Headline Font",
+      "default": "lobster_n4"
+    },
+    {
+      "type": "range",
+      "id": "margin_top",
+      "label": "Top Margin",
+      "min": 0,
+      "max": 100,
+      "step": 5,
+      "default": 0
+    },
+    {
+      "type": "range",
+      "id": "margin_bottom",
+      "label": "Bottom Margin",
+      "min": 0,
+      "max": 100,
+      "step": 5,
+      "default": 0
+    }
+  ]
+}
+{% endschema %}
+
