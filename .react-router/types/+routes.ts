@@ -46,7 +46,22 @@ type Pages = {
   "/app/api/check-embed": {
     params: {};
   };
+  "/app/theme-sections": {
+    params: {};
+  };
+  "/app/features-vote": {
+    params: {};
+  };
+  "/app/my-pages": {
+    params: {};
+  };
   "/app/funnels": {
+    params: {};
+  };
+  "/app/pricing": {
+    params: {};
+  };
+  "/app/pages": {
     params: {};
   };
   "/app/help": {
@@ -57,7 +72,7 @@ type Pages = {
 type RouteFiles = {
   "root.tsx": {
     id: "root";
-    page: "/" | "/webhooks/customers/data_request" | "/webhooks/app/scopes_update" | "/webhooks/customers/redact" | "/webhooks/app/uninstalled" | "/webhooks/shop/redact" | "/auth/login" | "/auth/*" | "/app" | "/app/register-webhooks" | "/app/api/check-embed" | "/app/funnels" | "/app/help";
+    page: "/" | "/webhooks/customers/data_request" | "/webhooks/app/scopes_update" | "/webhooks/customers/redact" | "/webhooks/app/uninstalled" | "/webhooks/shop/redact" | "/auth/login" | "/auth/*" | "/app" | "/app/register-webhooks" | "/app/api/check-embed" | "/app/theme-sections" | "/app/features-vote" | "/app/my-pages" | "/app/funnels" | "/app/pricing" | "/app/pages" | "/app/help";
   };
   "routes/webhooks.customers.data_request.tsx": {
     id: "routes/webhooks.customers.data_request";
@@ -93,7 +108,7 @@ type RouteFiles = {
   };
   "routes/app.tsx": {
     id: "routes/app";
-    page: "/app" | "/app/register-webhooks" | "/app/api/check-embed" | "/app/funnels" | "/app/help";
+    page: "/app" | "/app/register-webhooks" | "/app/api/check-embed" | "/app/theme-sections" | "/app/features-vote" | "/app/my-pages" | "/app/funnels" | "/app/pricing" | "/app/pages" | "/app/help";
   };
   "routes/app.register-webhooks.tsx": {
     id: "routes/app.register-webhooks";
@@ -103,13 +118,33 @@ type RouteFiles = {
     id: "routes/app.api.check-embed";
     page: "/app/api/check-embed";
   };
+  "routes/app.theme-sections.tsx": {
+    id: "routes/app.theme-sections";
+    page: "/app/theme-sections";
+  };
+  "routes/app.features-vote.tsx": {
+    id: "routes/app.features-vote";
+    page: "/app/features-vote";
+  };
+  "routes/app.my-pages.tsx": {
+    id: "routes/app.my-pages";
+    page: "/app/my-pages";
+  };
   "routes/app.funnels.tsx": {
     id: "routes/app.funnels";
     page: "/app/funnels";
   };
+  "routes/app.pricing.tsx": {
+    id: "routes/app.pricing";
+    page: "/app/pricing";
+  };
   "routes/app._index.tsx": {
     id: "routes/app._index";
     page: "/app";
+  };
+  "routes/app.pages.tsx": {
+    id: "routes/app.pages";
+    page: "/app/pages";
   };
   "routes/app.help.tsx": {
     id: "routes/app.help";
@@ -130,7 +165,12 @@ type RouteModules = {
   "routes/app": typeof import("./app/routes/app.tsx");
   "routes/app.register-webhooks": typeof import("./app/routes/app.register-webhooks.tsx");
   "routes/app.api.check-embed": typeof import("./app/routes/app.api.check-embed.tsx");
+  "routes/app.theme-sections": typeof import("./app/routes/app.theme-sections.tsx");
+  "routes/app.features-vote": typeof import("./app/routes/app.features-vote.tsx");
+  "routes/app.my-pages": typeof import("./app/routes/app.my-pages.tsx");
   "routes/app.funnels": typeof import("./app/routes/app.funnels.tsx");
+  "routes/app.pricing": typeof import("./app/routes/app.pricing.tsx");
   "routes/app._index": typeof import("./app/routes/app._index.tsx");
+  "routes/app.pages": typeof import("./app/routes/app.pages.tsx");
   "routes/app.help": typeof import("./app/routes/app.help.tsx");
 };

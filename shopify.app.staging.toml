@@ -1,0 +1,42 @@
+# Learn more about configuring your app at https://shopify.dev/docs/apps/tools/cli/configuration
+
+client_id = "41a5816209dbdf47de5d0c01ceef5bde"
+name = "Temply-staging"
+application_url = "https://temply-staging-bf8d15314778.herokuapp.com"
+embedded = true
+
+[build]
+automatically_update_urls_on_dev = false
+
+[webhooks]
+api_version = "2025-10"
+
+  [[webhooks.subscriptions]]
+  topics = [ "app/uninstalled" ]
+  uri = "/webhooks/app/uninstalled"
+
+  [[webhooks.subscriptions]]
+  topics = [ "app/scopes_update" ]
+  uri = "/webhooks/app/scopes_update"
+
+  [[webhooks.subscriptions]]
+  compliance_topics = ["customers/data_request"]
+  uri = "/webhooks/customers/data_request"
+
+  [[webhooks.subscriptions]]
+  compliance_topics = ["customers/redact"]
+  uri = "/webhooks/customers/redact"
+
+  [[webhooks.subscriptions]]
+  compliance_topics = ["shop/redact"]
+  uri = "/webhooks/shop/redact"
+
+[access_scopes]
+scopes = "write_products,read_themes,write_themes,read_content,write_content"
+
+[auth]
+redirect_urls = [
+  "https://temply-staging-bf8d15314778.herokuapp.com/api/auth",
+  "https://temply-staging-bf8d15314778.herokuapp.com/auth/callback"
+]
+

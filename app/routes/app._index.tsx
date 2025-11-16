@@ -99,6 +99,31 @@ export default function Dashboard() {
 
   return (
     <Page>
+      <style>{`
+        .dashboard-section {
+          background: white !important;
+          padding: 20px !important;
+          border-radius: 12px !important;
+          border: none !important;
+          box-shadow: none !important;
+        }
+        .dashboard-card-wrapper {
+          border-radius: 12px !important;
+          overflow: hidden !important;
+        }
+        .review-banner-section {
+          background: white !important;
+          padding: 20px !important;
+          border: 1px solid #E5E7EB !important;
+          border-radius: 12px !important;
+        }
+        .feedback-section {
+          background: white !important;
+          border-radius: 12px !important;
+          padding: 40px !important;
+          border: 1px solid #E5E7EB !important;
+        }
+      `}</style>
       <div style={{ paddingBottom: '60px' }}>
         <BlockStack gap="500">
         {/* Theme Editor Banner */}
@@ -119,13 +144,7 @@ export default function Dashboard() {
         )}
 
         {/* Support Hub Section */}
-        <div style={{ 
-          background: 'white', 
-          padding: '20px', 
-          borderRadius: '12px',
-          border: 'none',
-          boxShadow: 'none'
-        }}>
+        <div className="dashboard-section">
           <BlockStack gap="500">
             <Text as="h2" variant="headingMd" fontWeight="semibold">
               Support Hub
@@ -212,11 +231,10 @@ export default function Dashboard() {
               <div style={{ flex: 1 }}>
                 <div 
                   onClick={() => navigate('/app/help')}
+                  className="dashboard-card-wrapper"
                   style={{ 
                     cursor: 'pointer',
-                    transition: 'all 0.2s ease-in-out',
-                    borderRadius: '12px',
-                    overflow: 'hidden'
+                    transition: 'all 0.2s ease-in-out'
                   }}
                   onMouseEnter={(e) => {
                     e.currentTarget.style.transform = 'translateY(-2px)';
@@ -264,11 +282,10 @@ export default function Dashboard() {
               <div style={{ flex: 1 }}>
                 <div 
                   onClick={() => window.open('https://calendly.com/hi-lev-gieseler/30min', '_blank')}
+                  className="dashboard-card-wrapper"
                   style={{ 
                     cursor: 'pointer',
-                    transition: 'all 0.2s ease-in-out',
-                    borderRadius: '12px',
-                    overflow: 'hidden'
+                    transition: 'all 0.2s ease-in-out'
                   }}
                   onMouseEnter={(e) => {
                     e.currentTarget.style.transform = 'translateY(-2px)';
@@ -317,13 +334,7 @@ export default function Dashboard() {
         </div>
 
         {/* Welcome Section */}
-        <div style={{ 
-          background: 'white', 
-          padding: '20px', 
-          borderRadius: '12px',
-          border: 'none',
-          boxShadow: 'none'
-        }}>
+        <div className="dashboard-section">
           <BlockStack gap="400">
             <InlineStack gap="300" blockAlign="center">
               <Text as="h2" variant="headingLg" fontWeight="semibold">
@@ -581,12 +592,8 @@ export default function Dashboard() {
 
         {/* Review Banner */}
         {showReviewBanner && (
-          <div style={{ 
-            background: 'white',
-            padding: '20px',
-            position: 'relative',
-            border: '1px solid #E5E7EB',
-            borderRadius: '12px'
+          <div className="review-banner-section" style={{ 
+            position: 'relative'
           }}>
             <div style={{ position: 'absolute', top: '16px', right: '16px' }}>
               <Button 
@@ -648,11 +655,7 @@ export default function Dashboard() {
 
         {/* Feedback Section */}
         {showFeedbackSection && (
-          <div style={{ 
-            background: 'white',
-            borderRadius: '12px',
-            padding: '40px',
-            border: '1px solid #E5E7EB',
+          <div className="feedback-section" style={{ 
             position: 'relative'
           }}>
             <div style={{ position: 'absolute', top: '16px', right: '16px' }}>
