@@ -208,6 +208,7 @@ export default function Dashboard() {
                   </BlockStack>
                 </div>
 
+                {/* Founder Image - Temporarily disabled for staging
                 <div style={{ flexShrink: 0, width: '200px' }}>
                   <img 
                     src="/dashboard-img/founder-profile-new.png" 
@@ -223,6 +224,7 @@ export default function Dashboard() {
                     }}
                   />
                 </div>
+                */}
               </InlineStack>
             </Card>
 
