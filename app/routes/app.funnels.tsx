@@ -14,7 +14,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 
 /**
- * Modifies Liquid section code to add "Temply: " prefix to the section name
+ * Modifies Liquid section code to add "TP: " prefix to the section name
  * This ensures all Temply sections appear grouped together in the Theme Editor
  * Note: Shopify has a 25 character limit for section names
  */
@@ -34,15 +34,15 @@ function addTemplyPrefixToSectionName(liquidCode: string): string {
     // Parse the JSON schema
     const schema = JSON.parse(schemaContent);
     
-    // Add "Temply" as group prefix to the name if it doesn't already have it
-    // Format: "Temply: SectionName" - this creates a collapsible group "Temply" in the editor
+    // Add "TP" as group prefix to the name if it doesn't already have it
+    // Format: "TP: SectionName" - this creates a collapsible group "TP" in the editor
     // Ensure total length doesn't exceed 25 characters
-    if (schema.name && !schema.name.startsWith('Temply')) {
-      // Remove any existing "Temply: " prefix first
-      let name = schema.name.replace(/^Temply:\s*/, '').trim();
+    if (schema.name && !schema.name.startsWith('TP:') && !schema.name.startsWith('Temply')) {
+      // Remove any existing "TP: " or "Temply: " prefix first
+      let name = schema.name.replace(/^(TP|Temply):\s*/, '').trim();
       
-      const prefix = 'Temply: ';
-      const maxNameLength = 25 - prefix.length; // 17 characters for the actual name
+      const prefix = 'TP: ';
+      const maxNameLength = 25 - prefix.length; // 21 characters for the actual name
       
       // Truncate name if too long
       if (name.length > maxNameLength) {
@@ -50,20 +50,31 @@ function addTemplyPrefixToSectionName(liquidCode: string): string {
       }
       
       schema.name = prefix + name;
-    } else if (schema.name && schema.name.startsWith('Temply') && !schema.name.includes(':')) {
-      // If it starts with "Temply" but doesn't have a colon, add it
-      let name = schema.name.replace(/^Temply\s*/, '').trim();
+    } else if (schema.name && (schema.name.startsWith('Temply:') || schema.name.startsWith('Temply '))) {
+      // Convert existing "Temply: " to "TP: "
+      let name = schema.name.replace(/^Temply:\s*/, '').replace(/^Temply\s+/, '').trim();
+      const prefix = 'TP: ';
+      const maxNameLength = 25 - prefix.length;
+      
+      if (name.length > maxNameLength) {
+        name = name.substring(0, maxNameLength - 3) + '...';
+      }
+      
+      schema.name = prefix + name;
+    } else if (schema.name && schema.name.startsWith('TP') && !schema.name.includes(':')) {
+      // If it starts with "TP" but doesn't have a colon, add it
+      let name = schema.name.replace(/^TP\s*/, '').trim();
       if (name) {
-        schema.name = 'Temply: ' + name;
+        schema.name = 'TP: ' + name;
       }
     }
     
     // Also update preset names if they exist
     if (schema.presets && Array.isArray(schema.presets)) {
       schema.presets = schema.presets.map((preset: any) => {
-        if (preset.name && !preset.name.startsWith('Temply')) {
-          let name = preset.name.replace(/^Temply:\s*/, '').trim();
-          const prefix = 'Temply: ';
+        if (preset.name && !preset.name.startsWith('TP:') && !preset.name.startsWith('Temply')) {
+          let name = preset.name.replace(/^(TP|Temply):\s*/, '').trim();
+          const prefix = 'TP: ';
           const maxNameLength = 25 - prefix.length;
           
           if (name.length > maxNameLength) {
@@ -71,10 +82,20 @@ function addTemplyPrefixToSectionName(liquidCode: string): string {
           }
           
           preset.name = prefix + name;
-        } else if (preset.name && preset.name.startsWith('Temply') && !preset.name.includes(':')) {
-          let name = preset.name.replace(/^Temply\s*/, '').trim();
+        } else if (preset.name && (preset.name.startsWith('Temply:') || preset.name.startsWith('Temply '))) {
+          let name = preset.name.replace(/^Temply:\s*/, '').replace(/^Temply\s+/, '').trim();
+          const prefix = 'TP: ';
+          const maxNameLength = 25 - prefix.length;
+          
+          if (name.length > maxNameLength) {
+            name = name.substring(0, maxNameLength - 3) + '...';
+          }
+          
+          preset.name = prefix + name;
+        } else if (preset.name && preset.name.startsWith('TP') && !preset.name.includes(':')) {
+          let name = preset.name.replace(/^TP\s*/, '').trim();
           if (name) {
-            preset.name = 'Temply: ' + name;
+            preset.name = 'TP: ' + name;
           }
         }
         return preset;
@@ -90,7 +111,7 @@ function addTemplyPrefixToSectionName(liquidCode: string): string {
       `{% schema %}\n${modifiedSchema}\n{% endschema %}`
     );
     
-    console.log('✅ Added "Temply: " prefix to section name');
+    console.log('✅ Added "TP: " prefix to section name');
     return modifiedCode;
   } catch (error) {
     console.error('❌ Error parsing schema JSON:', error);
@@ -102,8 +123,8 @@ function addTemplyPrefixToSectionName(liquidCode: string): string {
       const modifiedContent = schemaContent.replace(
         nameRegex,
         (match, name) => {
-          if (!name.startsWith('Temply: ')) {
-            const prefix = 'Temply: ';
+          if (!name.startsWith('TP: ') && !name.startsWith('Temply: ')) {
+            const prefix = 'TP: ';
             const maxNameLength = 25 - prefix.length;
             let truncatedName = name;
             
@@ -112,6 +133,17 @@ function addTemplyPrefixToSectionName(liquidCode: string): string {
             }
             
             return `"name": "${prefix}${truncatedName}"`;
+          } else if (name.startsWith('Temply: ')) {
+            // Convert "Temply: " to "TP: "
+            let newName = name.replace(/^Temply:\s*/, '').trim();
+            const prefix = 'TP: ';
+            const maxNameLength = 25 - prefix.length;
+            
+            if (newName.length > maxNameLength) {
+              newName = newName.substring(0, maxNameLength - 3) + '...';
+            }
+            
+            return `"name": "${prefix}${newName}"`;
           }
           return match;
         }
@@ -268,9 +300,9 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         const filename = edge.node.filename;
         let liquidCode = edge.node.body;
         
-        // Check if name already has Temply prefix
-        if (liquidCode.includes('"name"') && (liquidCode.includes('"Temply: ') || liquidCode.includes('"Temply - '))) {
-          console.log(`⏭️  Section ${filename} already has Temply prefix, skipping`);
+        // Check if name already has TP prefix
+        if (liquidCode.includes('"name"') && (liquidCode.includes('"TP: ') || liquidCode.includes('"Temply: ') || liquidCode.includes('"Temply - '))) {
+          console.log(`⏭️  Section ${filename} already has TP prefix, skipping`);
           continue;
         }
         
@@ -292,7 +324,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       if (filesToUpdate.length === 0) {
         return Response.json({ 
           success: true,
-          message: "All Temply sections already have the category set",
+          message: "All Temply sections already have the TP prefix set",
           updated: 0
         });
       }
