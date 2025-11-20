@@ -21,11 +21,17 @@ async function main() {
     '3-full-width-image.liquid'
   ];
 
+  // Get the app URL from environment or use a default
+  // For staging, this will be the Heroku URL
+  // For local dev, this will be the local URL
+  const appUrl = process.env.SHOPIFY_APP_URL || process.env.HOST || 'https://temply-staging-bf8d15314778.herokuapp.com';
+  const baseUrl = appUrl.replace(/\/$/, ''); // Remove trailing slash
+
   const bundleTemplate = {
     name: 'Complete Product Page Bundle',
     description: 'Vollständige Produktseite mit 3 Sektionen: Text Section, Text + Image + Accordion, und Full Width Image.',
     category: 'product-page',
-    previewImage: 'https://cdn.shopify.com/s/files/1/0799/5880/2740/files/example_product_cropped.png?v=1718548170',
+    previewImage: `${baseUrl}/product-bundle-preview.png`,
     isActive: true,
     isFeatured: true,
     settings: JSON.stringify({
@@ -47,7 +53,7 @@ async function main() {
       name: 'Coming Soon',
       description: 'This template is coming soon. Stay tuned!',
       category: 'coming-soon',
-      previewImage: 'https://cdn.shopify.com/s/files/1/0533/2089/files/placeholder-images-image_large.png',
+      previewImage: `${baseUrl}/Product-Image/ComingSoon.png`,
       isActive: true,
       isFeatured: false,
       settings: JSON.stringify({}),
@@ -58,7 +64,7 @@ async function main() {
       name: 'Coming Soon',
       description: 'This template is coming soon. Stay tuned!',
       category: 'coming-soon',
-      previewImage: 'https://cdn.shopify.com/s/files/1/0533/2089/files/placeholder-images-image_large.png',
+      previewImage: `${baseUrl}/Product-Image/ComingSoon.png`,
       isActive: true,
       isFeatured: false,
       settings: JSON.stringify({}),
