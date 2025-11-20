@@ -13,7 +13,116 @@ import { checkAppEmbedStatus } from "../lib/theme-embed-checker.server";
 import * as fs from 'fs';
 import * as path from 'path';
 
-
+/**
+ * Modifies Liquid section code to add "Temply: " prefix to the section name
+ * This ensures all Temply sections appear grouped together in the Theme Editor
+ * Note: Shopify has a 25 character limit for section names
+ */
+function addTemplyPrefixToSectionName(liquidCode: string): string {
+  // Find the schema block
+  const schemaRegex = /{%\s*schema\s*%}([\s\S]*?){%\s*endschema\s*%}/;
+  const match = liquidCode.match(schemaRegex);
+  
+  if (!match) {
+    console.warn('⚠️ No schema block found in section, skipping name prefix addition');
+    return liquidCode;
+  }
+  
+  const schemaContent = match[1].trim();
+  
+  try {
+    // Parse the JSON schema
+    const schema = JSON.parse(schemaContent);
+    
+    // Add "Temply" as group prefix to the name if it doesn't already have it
+    // Format: "Temply: SectionName" - this creates a collapsible group "Temply" in the editor
+    // Ensure total length doesn't exceed 25 characters
+    if (schema.name && !schema.name.startsWith('Temply')) {
+      // Remove any existing "Temply: " prefix first
+      let name = schema.name.replace(/^Temply:\s*/, '').trim();
+      
+      const prefix = 'Temply: ';
+      const maxNameLength = 25 - prefix.length; // 17 characters for the actual name
+      
+      // Truncate name if too long
+      if (name.length > maxNameLength) {
+        name = name.substring(0, maxNameLength - 3) + '...';
+      }
+      
+      schema.name = prefix + name;
+    } else if (schema.name && schema.name.startsWith('Temply') && !schema.name.includes(':')) {
+      // If it starts with "Temply" but doesn't have a colon, add it
+      let name = schema.name.replace(/^Temply\s*/, '').trim();
+      if (name) {
+        schema.name = 'Temply: ' + name;
+      }
+    }
+    
+    // Also update preset names if they exist
+    if (schema.presets && Array.isArray(schema.presets)) {
+      schema.presets = schema.presets.map((preset: any) => {
+        if (preset.name && !preset.name.startsWith('Temply')) {
+          let name = preset.name.replace(/^Temply:\s*/, '').trim();
+          const prefix = 'Temply: ';
+          const maxNameLength = 25 - prefix.length;
+          
+          if (name.length > maxNameLength) {
+            name = name.substring(0, maxNameLength - 3) + '...';
+          }
+          
+          preset.name = prefix + name;
+        } else if (preset.name && preset.name.startsWith('Temply') && !preset.name.includes(':')) {
+          let name = preset.name.replace(/^Temply\s*/, '').trim();
+          if (name) {
+            preset.name = 'Temply: ' + name;
+          }
+        }
+        return preset;
+      });
+    }
+    
+    // Convert back to JSON with proper formatting
+    const modifiedSchema = JSON.stringify(schema, null, 2);
+    
+    // Replace the schema block in the original code
+    const modifiedCode = liquidCode.replace(
+      schemaRegex,
+      `{% schema %}\n${modifiedSchema}\n{% endschema %}`
+    );
+    
+    console.log('✅ Added "Temply: " prefix to section name');
+    return modifiedCode;
+  } catch (error) {
+    console.error('❌ Error parsing schema JSON:', error);
+    console.error('Schema content:', schemaContent);
+    
+    // Fallback: Use regex to add prefix to name
+    const nameRegex = /"name"\s*:\s*"([^"]*)"/;
+    if (nameRegex.test(schemaContent)) {
+      const modifiedContent = schemaContent.replace(
+        nameRegex,
+        (match, name) => {
+          if (!name.startsWith('Temply: ')) {
+            const prefix = 'Temply: ';
+            const maxNameLength = 25 - prefix.length;
+            let truncatedName = name;
+            
+            if (truncatedName.length > maxNameLength) {
+              truncatedName = truncatedName.substring(0, maxNameLength - 3) + '...';
+            }
+            
+            return `"name": "${prefix}${truncatedName}"`;
+          }
+          return match;
+        }
+      );
+      return liquidCode.replace(schemaRegex, `{% schema %}\n${modifiedContent}\n{% endschema %}`);
+    }
+    
+    console.warn('⚠️ Could not add prefix to section name, returning original code');
+    return liquidCode;
+  }
+}
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { session } = await authenticate.admin(request);
@@ -73,12 +182,172 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 };
 
 export const action = async ({ request }: ActionFunctionArgs) => {
-  console.log('🚀 Install section action called');
-  
   const { admin, session } = await authenticate.admin(request);
   console.log('✅ Authentication successful for shop:', session.shop);
   
   const formData = await request.formData();
+  const actionType = formData.get("action") as string;
+  
+  // Handle update existing sections action
+  if (actionType === "updateExistingSections") {
+    console.log('🔄 Update existing sections action called');
+    
+    try {
+      // Get the live theme ID
+      const themesData = await shopifyGraphQL(
+        `query {
+          themes(first: 1, roles: MAIN) {
+            nodes {
+              id
+              name
+            }
+          }
+        }`,
+        {},
+        session.shop,
+        session.accessToken
+      );
+      
+      if (!themesData?.themes?.nodes || themesData.themes.nodes.length === 0) {
+        return Response.json({ 
+          error: "No live theme found",
+          details: "No themes available in the shop"
+        }, { status: 404 });
+      }
+      
+      const liveTheme = themesData.themes.nodes[0];
+      
+      // Get all section files from the theme
+      const themeFilesData = await shopifyGraphQL(
+        `query getThemeFiles($themeId: ID!) {
+          theme(id: $themeId) {
+            files(first: 250) {
+              edges {
+                node {
+                  filename
+                  ... on OnlineStoreThemeFile {
+                    body
+                  }
+                }
+              }
+            }
+          }
+        }`,
+        { themeId: liveTheme.id },
+        session.shop,
+        session.accessToken
+      );
+      
+      if (!themeFilesData?.theme?.files?.edges) {
+        return Response.json({ 
+          error: "Failed to fetch theme files"
+        }, { status: 500 });
+      }
+      
+      // Filter for Temply sections (sections/temply-*.liquid)
+      const templySections = themeFilesData.theme.files.edges.filter((edge: any) => {
+        const filename = edge.node.filename;
+        return filename.startsWith('sections/temply-') && filename.endsWith('.liquid');
+      });
+      
+      console.log(`📦 Found ${templySections.length} Temply sections to update`);
+      
+      if (templySections.length === 0) {
+        return Response.json({ 
+          success: true,
+          message: "No Temply sections found to update",
+          updated: 0
+        });
+      }
+      
+      // Update each section
+      const filesToUpdate = [];
+      let updatedCount = 0;
+      
+      for (const edge of templySections) {
+        const filename = edge.node.filename;
+        let liquidCode = edge.node.body;
+        
+        // Check if name already has Temply prefix
+        if (liquidCode.includes('"name"') && (liquidCode.includes('"Temply: ') || liquidCode.includes('"Temply - '))) {
+          console.log(`⏭️  Section ${filename} already has Temply prefix, skipping`);
+          continue;
+        }
+        
+        // Add Temply prefix to section name
+        const modifiedCode = addTemplyPrefixToSectionName(liquidCode);
+        
+        if (modifiedCode !== liquidCode) {
+          filesToUpdate.push({
+            filename: filename,
+            body: {
+              type: "TEXT",
+              value: modifiedCode
+            }
+          });
+          updatedCount++;
+        }
+      }
+      
+      if (filesToUpdate.length === 0) {
+        return Response.json({ 
+          success: true,
+          message: "All Temply sections already have the category set",
+          updated: 0
+        });
+      }
+      
+      // Upload updated files
+      const updateData = await shopifyGraphQL(
+        `mutation themeFilesUpsert($files: [OnlineStoreThemeFilesUpsertFileInput!]!, $themeId: ID!) {
+          themeFilesUpsert(files: $files, themeId: $themeId) {
+            upsertedThemeFiles {
+              filename
+              size
+            }
+            userErrors {
+              field
+              message
+            }
+          }
+        }`,
+        {
+          themeId: liveTheme.id,
+          files: filesToUpdate
+        },
+        session.shop,
+        session.accessToken
+      );
+      
+      if (updateData?.themeFilesUpsert?.userErrors?.length > 0) {
+        console.error('Theme update errors:', updateData.themeFilesUpsert.userErrors);
+        return Response.json({ 
+          error: "Failed to update some sections",
+          details: updateData.themeFilesUpsert.userErrors.map((e: any) => `${e.field}: ${e.message}`).join(', ')
+        }, { status: 400 });
+      }
+      
+      console.log(`✅ Successfully updated ${updatedCount} Temply sections`);
+      
+      return Response.json({
+        success: true,
+        message: `Successfully updated ${updatedCount} Temply section(s)`,
+        updated: updatedCount,
+        total: templySections.length
+      });
+      
+    } catch (error) {
+      console.error('❌ Error updating sections:', error);
+      return Response.json({ 
+        error: "Failed to update sections",
+        details: error instanceof Error ? error.message : String(error)
+      }, { status: 500 });
+    }
+  }
+  
+  // Original install action
+  console.log('🚀 Install section action called');
+  
   const templateId = formData.get("templateId") as string;
   console.log('📦 Template ID:', templateId);
 
@@ -169,7 +438,10 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         const liquidPath = path.join(process.cwd(), 'prisma', 'templates', sectionFile);
         console.log('📖 Reading:', liquidPath);
         
-        const liquidCode = fs.readFileSync(liquidPath, 'utf-8');
+        let liquidCode = fs.readFileSync(liquidPath, 'utf-8');
+        
+        // Add Temply prefix to section name
+        liquidCode = addTemplyPrefixToSectionName(liquidCode);
         
         // Generate nice section name for Shopify (temply-text-section instead of 1-text-section)
         const cleanName = sectionFile.replace(/^\d+-/, '').replace('.liquid', ''); // "text-section"
@@ -195,6 +467,9 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         return Response.json({ error: "Template has no liquid code" }, { status: 404 });
       }
       
+      // Add Temply prefix to section name
+      let modifiedLiquidCode = addTemplyPrefixToSectionName(template.liquidCode);
+      
       const baseFilename = settings.filename || `temply-${template.name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}.liquid`;
       const sectionType = baseFilename.replace('.liquid', '');
       
@@ -202,7 +477,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         filename: `sections/${baseFilename}`,
         body: {
           type: "TEXT",
-          value: template.liquidCode
+          value: modifiedLiquidCode
         }
       });
       
