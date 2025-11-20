@@ -15,7 +15,7 @@ const shopify = shopifyApp({
   appUrl: process.env.APP_URL_HOST ? `https://${process.env.APP_URL_HOST}` : (process.env.SHOPIFY_APP_URL || process.env.HOST || ""),
   authPathPrefix: "/auth",
   sessionStorage: new PrismaSessionStorage(prisma),
-  distribution: AppDistribution.AppStore,
+  distribution: AppDistribution.Custom,
   ...(process.env.SHOP_CUSTOM_DOMAIN
     ? { customShopDomains: [process.env.SHOP_CUSTOM_DOMAIN] }
     : {}),
