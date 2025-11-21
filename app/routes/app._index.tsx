@@ -1,8 +1,9 @@
 import type {
   HeadersFunction,
   LoaderFunctionArgs,
+  ActionFunctionArgs,
 } from "react-router";
-import { useLoaderData, useNavigate } from "react-router";
+import { useLoaderData, useNavigate, useFetcher, useRevalidator } from "react-router";
 import { authenticate } from "../shopify.server";
 import { boundary } from "@shopify/shopify-app-react-router/server";
 import { useState, useEffect } from "react";
@@ -15,6 +16,9 @@ import {
   BlockStack,
   Banner,
   Icon,
+  Badge,
+  Checkbox,
+  ButtonGroup,
 } from "@shopify/polaris";
 import {
   ArrowDownIcon,
@@ -22,22 +26,226 @@ import {
   QuestionCircleIcon,
   ChevronRightIcon,
   XIcon,
+  SearchIcon,
+  FilterIcon,
+  SortIcon,
 } from "@shopify/polaris-icons";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { session } = await authenticate.admin(request);
   
-  return { shop: session.shop };
+  // Load recent pages (like in My Pages)
+  const { shopifyGraphQL } = await import("../lib/shopify-direct.server");
+  const prisma = (await import("../db.server")).default;
+  
+  try {
+    const pagesData = await shopifyGraphQL(
+      `query {
+        pages(first: 10, sortKey: UPDATED_AT, reverse: true) {
+          edges {
+            node {
+              id
+              title
+              handle
+              updatedAt
+              templateSuffix
+              isPublished
+              metafield(namespace: "temply", key: "preview_image") {
+                value
+              }
+              templateIdMetafield: metafield(namespace: "temply", key: "template_id") {
+                value
+              }
+              pageTypeMetafield: metafield(namespace: "temply", key: "page_type") {
+                value
+              }
+            }
+          }
+        }
+      }`,
+      {},
+      session.shop,
+      session.accessToken
+    );
+
+    const allPages = pagesData?.pages?.edges?.map((edge: any) => edge.node) || [];
+    const pages = allPages.filter((page: any) => 
+      page.templateIdMetafield?.value
+    );
+
+    // Load templates from database to get preview images
+    const templates = await prisma.template.findMany({
+      select: {
+        id: true,
+        previewImage: true
+      }
+    });
+
+    const templateImageMap = new Map(
+      templates.map(t => [t.id, t.previewImage])
+    );
+
+    const enrichedPages = pages.map((page: any) => {
+      const templateId = page.templateIdMetafield?.value;
+      const previewImage = templateId ? templateImageMap.get(templateId) : page.metafield?.value;
+      const pageType = page.pageTypeMetafield?.value || 'Page';
+      
+      return {
+        ...page,
+        previewImage: previewImage || null,
+        pageType: pageType
+      };
+    });
+
+    return { shop: session.shop, pages: enrichedPages };
+  } catch (error) {
+    console.error('Error loading pages:', error);
+    return { shop: session.shop, pages: [] };
+  }
 };
 
+export const action = async ({ request }: ActionFunctionArgs) => {
+  const { session } = await authenticate.admin(request);
+  const formData = await request.formData();
+  const actionType = formData.get('actionType') as string;
+  const pageIds = formData.get('pageIds') as string;
+
+  const { shopifyGraphQL } = await import("../lib/shopify-direct.server");
+
+  try {
+    if (pageIds) {
+      const pageIdArray = pageIds.split(',');
+      const results = [];
+      
+      for (const id of pageIdArray) {
+        if (actionType === 'publish') {
+          const mutation = `mutation {
+            pagePublish(id: "${id}") {
+              page {
+                id
+                isPublished
+              }
+            }
+          }`;
+          const result = await shopifyGraphQL(mutation, {}, session.shop, session.accessToken);
+          results.push(result);
+        }
+
+        if (actionType === 'unpublish') {
+          const mutation = `mutation {
+            pageUnpublish(id: "${id}") {
+              page {
+                id
+                isPublished
+              }
+            }
+          }`;
+          const result = await shopifyGraphQL(mutation, {}, session.shop, session.accessToken);
+          results.push(result);
+        }
+
+        if (actionType === 'delete') {
+          const result = await shopifyGraphQL(
+            `mutation {
+              pageDelete(id: "${id}") {
+                deletedPageId
+              }
+            }`,
+            {},
+            session.shop,
+            session.accessToken
+          );
+          results.push(result);
+        }
+      }
+
+      return { success: true, results };
+    }
+
+    return { success: false, error: 'No page IDs provided' };
+  } catch (error) {
+    console.error('Bulk action error:', error);
+    return { success: false, error: 'Failed to perform bulk action' };
+  }
+};
 
 export default function Dashboard() {
-  const { shop } = useLoaderData<typeof loader>();
+  const { shop, pages } = useLoaderData<typeof loader>();
   const navigate = useNavigate();
+  const fetcher = useFetcher();
+  const revalidator = useRevalidator();
   const [appEmbedEnabled, setAppEmbedEnabled] = useState<boolean | null>(null);
   const [showReviewBanner, setShowReviewBanner] = useState<boolean>(true);
-  const [showFeedbackSection, setShowFeedbackSection] = useState<boolean>(true);
+  const [showFeedbackSection, setShowFeedbackSection] = useState<boolean>(false);
   const [starRating, setStarRating] = useState<number>(0);
+  const [selectedPages, setSelectedPages] = useState<Set<string>>(new Set());
+  const [activeFilter, setActiveFilter] = useState<string>('All');
+
+  // Sort pages by date (newest first)
+  const sortedPages = [...pages].sort((a: any, b: any) => {
+    return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
+  });
+
+  // Filter pages based on active filter
+  const filteredPages = sortedPages.filter((page: any) => {
+    if (activeFilter === 'All') return true;
+    return page.pageType?.toLowerCase() === activeFilter.toLowerCase();
+  });
+
+  const getRelativeTime = (dateString: string) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffInDays = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24));
+    
+    if (diffInDays === 0) return 'today';
+    if (diffInDays === 1) return 'yesterday';
+    if (diffInDays < 7) return `${diffInDays} days ago`;
+    if (diffInDays < 30) return `${Math.floor(diffInDays / 7)} weeks ago`;
+    return `${Math.floor(diffInDays / 30)} months ago`;
+  };
+
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      setSelectedPages(new Set(filteredPages.map(p => p.id)));
+    } else {
+      setSelectedPages(new Set());
+    }
+  };
+
+  const handleSelectPage = (pageId: string, checked: boolean) => {
+    const newSelected = new Set(selectedPages);
+    if (checked) {
+      newSelected.add(pageId);
+    } else {
+      newSelected.delete(pageId);
+    }
+    setSelectedPages(newSelected);
+  };
+
+  const handleBulkAction = (action: 'publish' | 'unpublish' | 'delete') => {
+    if (selectedPages.size === 0) return;
+
+    const pageIds = Array.from(selectedPages).join(',');
+    
+    if (action === 'delete') {
+      if (!confirm(`Are you sure you want to delete ${selectedPages.size} page(s)?`)) {
+        return;
+      }
+    }
+    
+    fetcher.submit(
+      { actionType: action, pageIds },
+      { method: 'post' }
+    );
+  };
+
+  // Update data after bulk action
+  useEffect(() => {
+    if (fetcher.state === 'idle' && fetcher.data) {
+      revalidator.revalidate();
+      setSelectedPages(new Set());
+    }
+  }, [fetcher.state, fetcher.data, revalidator]);
 
   // Check app embed status on mount
   useEffect(() => {
@@ -523,6 +731,275 @@ export default function Dashboard() {
           </BlockStack>
         </div>
 
+        {/* Recent Pages Section */}
+        {sortedPages.length > 0 && (
+          <div className="dashboard-section">
+            <BlockStack gap="400">
+              <Text as="h2" variant="headingMd" fontWeight="semibold">
+                Your recent pages
+              </Text>
+
+              {/* Filter Tabs and Action Icons */}
+              <div style={{ 
+                display: 'flex', 
+                gap: '16px',
+                borderBottom: '1px solid #E1E3E5',
+                paddingBottom: '8px',
+                alignItems: 'center',
+                justifyContent: 'space-between'
+              }}>
+                <div style={{ display: 'flex', gap: '16px', flex: 1 }}>
+                  {['All', 'Landing', 'Home', 'Product', 'Collection', 'Blog post'].map((filter) => (
+                    <button
+                      key={filter}
+                      onClick={() => setActiveFilter(filter)}
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        padding: '8px 0',
+                        fontSize: '13px',
+                        fontWeight: activeFilter === filter ? 600 : 400,
+                        color: activeFilter === filter ? '#303030' : '#6D7175',
+                        cursor: 'pointer',
+                        borderBottom: activeFilter === filter ? '2px solid #303030' : '2px solid transparent',
+                        marginBottom: '-10px',
+                        transition: 'all 0.2s'
+                      }}
+                    >
+                      {filter}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Bulk Actions or Icons */}
+                {selectedPages.size > 0 ? (
+                  <ButtonGroup>
+                    <Button size="slim" onClick={() => handleBulkAction('publish')}>
+                      Visible
+                    </Button>
+                    <Button size="slim" onClick={() => handleBulkAction('unpublish')}>
+                      Hidden
+                    </Button>
+                    <Button size="slim" tone="critical" onClick={() => handleBulkAction('delete')}>
+                      Delete
+                    </Button>
+                  </ButtonGroup>
+                ) : (
+                  <div style={{ display: 'flex', gap: '12px' }}>
+                    <button style={{
+                      background: 'none',
+                      border: 'none',
+                      cursor: 'pointer',
+                      padding: '4px',
+                      color: '#6D7175'
+                    }}>
+                      <Icon source={SearchIcon} />
+                    </button>
+                    <button style={{
+                      background: 'none',
+                      border: 'none',
+                      cursor: 'pointer',
+                      padding: '4px',
+                      color: '#6D7175'
+                    }}>
+                      <Icon source={FilterIcon} />
+                    </button>
+                    <button style={{
+                      background: 'none',
+                      border: 'none',
+                      cursor: 'pointer',
+                      padding: '4px',
+                      color: '#6D7175'
+                    }}>
+                      <Icon source={SortIcon} />
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {/* Instant landing page link */}
+              <Text as="p" variant="bodySm" tone="subdued">
+                Instant landing page
+              </Text>
+
+              {/* Select All */}
+              <div style={{ paddingBottom: '12px' }}>
+                <Checkbox
+                  label="Select all"
+                  checked={selectedPages.size > 0 && selectedPages.size === filteredPages.length}
+                  onChange={handleSelectAll}
+                />
+              </div>
+
+              {/* Pages List */}
+              <BlockStack gap="300">
+                {filteredPages.map((page: any) => {
+                  const pageNumericId = page.id.split('/').pop();
+                  
+                  return (
+                    <div
+                      key={page.id}
+                      onClick={() => navigate(`/app/my-pages`)}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '16px',
+                        padding: '12px',
+                        borderRadius: '8px',
+                        cursor: 'pointer',
+                        transition: 'background-color 0.2s',
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.backgroundColor = '#F6F6F7';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.backgroundColor = 'transparent';
+                      }}
+                    >
+                      {/* Checkbox */}
+                      <div 
+                        className="checkbox-wrapper"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <Checkbox
+                          label=""
+                          labelHidden
+                          checked={selectedPages.has(page.id)}
+                          onChange={(checked) => handleSelectPage(page.id, checked)}
+                        />
+                      </div>
+
+                      {/* Thumbnail */}
+                      <div style={{
+                        width: '60px',
+                        height: '60px',
+                        flexShrink: 0,
+                        borderRadius: '4px',
+                        overflow: 'hidden',
+                        background: '#ffffff',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        border: '1px solid #E1E3E5'
+                      }}>
+                        {page.previewImage ? (
+                          <img 
+                            src={page.previewImage}
+                            alt={page.title}
+                            style={{
+                              maxWidth: '100%',
+                              maxHeight: '100%',
+                              objectFit: 'contain'
+                            }}
+                          />
+                        ) : (
+                          <div style={{
+                            width: '100%',
+                            height: '100%',
+                            background: 'repeating-conic-gradient(#E1E3E5 0% 25%, transparent 0% 50%) 50% / 10px 10px'
+                          }} />
+                        )}
+                      </div>
+
+                      {/* Content */}
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <BlockStack gap="100">
+                          {/* Title and Badge */}
+                          <InlineStack gap="200" blockAlign="center" wrap={false}>
+                            <div style={{ 
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              whiteSpace: 'nowrap'
+                            }}>
+                              <Text as="h3" variant="bodyMd" fontWeight="semibold">
+                                {page.title}
+                              </Text>
+                            </div>
+                            <Badge tone="success">Default</Badge>
+                          </InlineStack>
+
+                          {/* Page Type */}
+                          <Text as="p" variant="bodySm" tone="subdued">
+                            {page.pageType} page
+                          </Text>
+
+                          {/* Meta Info */}
+                          <Text as="p" variant="bodySm" tone="subdued">
+                            Assigned the rest of {page.pageType?.toLowerCase()}s • Last modified {getRelativeTime(page.updatedAt)}
+                          </Text>
+                        </BlockStack>
+                      </div>
+                    </div>
+                  );
+                })}
+              </BlockStack>
+            </BlockStack>
+          </div>
+        )}
+
+        {/* Review Banner - "Enjoying app" */}
+        {showReviewBanner && (
+          <div className="review-banner-section" style={{ 
+            position: 'relative'
+          }}>
+            <div style={{ position: 'absolute', top: '16px', right: '16px' }}>
+              <Button 
+                icon={XIcon} 
+                variant="plain" 
+                onClick={() => setShowReviewBanner(false)}
+              />
+            </div>
+            <InlineStack gap="400" blockAlign="start" wrap={false}>
+              <div style={{ flexShrink: 0 }}>
+                <img 
+                  src="/logo/ImageWithFallback.png" 
+                  alt="Temply Logo"
+                  style={{
+                    width: '80px',
+                    height: 'auto',
+                    border: 'none',
+                    borderRadius: '0',
+                    display: 'block'
+                  }}
+                />
+              </div>
+              <div style={{ flex: 1, paddingRight: '40px' }}>
+                <BlockStack gap="300">
+                  <Text as="h3" variant="headingMd" fontWeight="semibold">
+                    Enjoying our app? Leave a review!
+                  </Text>
+                  <Text as="p" variant="bodyMd" tone="subdued">
+                    We celebrate every review! It helps our company grow and continue providing great customer support. Thank you in advance!
+                  </Text>
+                  <div>
+                    <style>{`
+                      .black-review-button button {
+                        background: #000000 !important;
+                        border-color: #000000 !important;
+                        box-shadow: 0 0 0 0 transparent, 0 1px 0 0 rgba(0, 0, 0, 0.05) !important;
+                      }
+                      .black-review-button button:hover {
+                        background: #2d2d2d !important;
+                        border-color: #2d2d2d !important;
+                      }
+                      .black-review-button button:active {
+                        background: #000000 !important;
+                        border-color: #000000 !important;
+                      }
+                      .black-review-button button span {
+                        color: white !important;
+                      }
+                    `}</style>
+                    <div className="black-review-button">
+                      <Button>Write a review</Button>
+                    </div>
+                  </div>
+                </BlockStack>
+              </div>
+            </InlineStack>
+          </div>
+        )}
+
         {/* Community & News Section */}
         <InlineStack gap="400" wrap={false} blockAlign="stretch">
           {/* Join our Community Card */}
@@ -592,70 +1069,7 @@ export default function Dashboard() {
           </div>
         </InlineStack>
 
-        {/* Review Banner */}
-        {showReviewBanner && (
-          <div className="review-banner-section" style={{ 
-            position: 'relative'
-          }}>
-            <div style={{ position: 'absolute', top: '16px', right: '16px' }}>
-              <Button 
-                icon={XIcon} 
-                variant="plain" 
-                onClick={() => setShowReviewBanner(false)}
-              />
-            </div>
-            <InlineStack gap="400" blockAlign="start" wrap={false}>
-              <div style={{ flexShrink: 0 }}>
-                <img 
-                  src="/logo/ImageWithFallback.png" 
-                  alt="Temply Logo"
-                  style={{
-                    width: '80px',
-                    height: 'auto',
-                    border: 'none',
-                    borderRadius: '0',
-                    display: 'block'
-                  }}
-                />
-              </div>
-              <div style={{ flex: 1, paddingRight: '40px' }}>
-                <BlockStack gap="300">
-                  <Text as="h3" variant="headingMd" fontWeight="semibold">
-                    Enjoying our app? Leave a review!
-                  </Text>
-                  <Text as="p" variant="bodyMd" tone="subdued">
-                    We celebrate every review! It helps our company grow and continue providing great customer support. Thank you in advance!
-                  </Text>
-                  <div>
-                    <style>{`
-                      .black-review-button button {
-                        background: #000000 !important;
-                        border-color: #000000 !important;
-                        box-shadow: 0 0 0 0 transparent, 0 1px 0 0 rgba(0, 0, 0, 0.05) !important;
-                      }
-                      .black-review-button button:hover {
-                        background: #2d2d2d !important;
-                        border-color: #2d2d2d !important;
-                      }
-                      .black-review-button button:active {
-                        background: #000000 !important;
-                        border-color: #000000 !important;
-                      }
-                      .black-review-button button span {
-                        color: white !important;
-                      }
-                    `}</style>
-                    <div className="black-review-button">
-                      <Button>Write a review</Button>
-                    </div>
-                  </div>
-                </BlockStack>
-              </div>
-            </InlineStack>
-          </div>
-        )}
-
-        {/* Feedback Section */}
+        {/* Feedback Section - Show after other sections */}
         {showFeedbackSection && (
           <div className="feedback-section" style={{ 
             position: 'relative'
