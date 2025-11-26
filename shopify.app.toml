@@ -7,7 +7,7 @@ embedded = true
 
 [build]
 automatically_update_urls_on_dev = true
-dev_store_url = "josh-app-test-2.myshopify.com"
+dev_store_url = "josh-app-dev-store.myshopify.com"
 
 [webhooks]
 api_version = "2025-10"

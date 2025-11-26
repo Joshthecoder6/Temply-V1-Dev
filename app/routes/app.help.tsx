@@ -6,6 +6,16 @@ import { useLoaderData } from "react-router";
 import { authenticate } from "../shopify.server";
 import { boundary } from "@shopify/shopify-app-react-router/server";
 import { useState } from "react";
+import {
+  Page,
+  Card,
+  Text,
+  BlockStack,
+  Collapsible,
+  Button,
+  InlineStack,
+} from "@shopify/polaris";
+import { ChevronDownIcon } from "@shopify/polaris-icons";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { session } = await authenticate.admin(request);
@@ -45,150 +55,94 @@ export default function Help() {
   };
 
   return (
-    <div style={{ 
-      maxWidth: '900px', 
-      margin: '0 auto',
-      padding: '40px 20px',
-      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif'
-    }}>
-      {/* Header */}
-      <div style={{
-        marginBottom: '32px'
-      }}>
-        <h1 style={{
-          fontSize: '28px',
-          fontWeight: 600,
-          margin: '0 0 8px 0',
-          color: '#202223'
-        }}>
-          Frequently asked questions
-        </h1>
-        <p style={{
-          fontSize: '14px',
-          color: '#6d7175',
-          margin: 0
-        }}>
-          Still have questions? Reach out to our support team directly from the app dashboard.
-        </p>
-      </div>
+    <Page>
+      <BlockStack gap="500">
+        {/* Header */}
+        <BlockStack gap="200">
+          <Text as="h1" variant="headingLg">
+            Frequently asked questions
+          </Text>
+          <Text as="p" variant="bodyMd" tone="subdued">
+            Still have questions? Reach out to our support team directly from the app dashboard.
+          </Text>
+        </BlockStack>
 
-      {/* FAQ Section */}
-      <div style={{
-        background: 'white',
-        borderRadius: '8px',
-        border: '1px solid #e1e3e5',
-        overflow: 'hidden'
-      }}>
-        <div style={{ padding: '20px 24px' }}>
-          <h2 style={{
-            fontSize: '16px',
-            fontWeight: 600,
-            margin: '0 0 16px 0',
-            color: '#202223'
-          }}>
-            FAQ
-          </h2>
-        </div>
+        {/* FAQ Section */}
+        <Card>
+          <BlockStack gap="400">
+            <Text as="h2" variant="headingSm">
+              FAQ
+            </Text>
 
-        {/* FAQ Items */}
-        <div>
-          {faqs.map((faq, index) => (
-            <div key={index}>
-              <div
-                onClick={() => toggleFaq(index)}
-                style={{
-                  padding: '16px 24px',
-                  borderTop: '1px solid #e1e3e5',
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  cursor: 'pointer',
-                  transition: 'background-color 0.15s ease',
-                  backgroundColor: openFaqIndex === index ? '#f9fafb' : 'transparent'
-                }}
-                onMouseEnter={(e) => {
-                  if (openFaqIndex !== index) {
-                    e.currentTarget.style.backgroundColor = '#fafbfc';
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  if (openFaqIndex !== index) {
-                    e.currentTarget.style.backgroundColor = 'transparent';
-                  }
-                }}
-              >
-                <span style={{
-                  fontSize: '14px',
-                  color: '#202223',
-                  fontWeight: 500
-                }}>
-                  {faq.question}
-                </span>
-                <span style={{
-                  fontSize: '18px',
-                  color: '#6d7175',
-                  transform: openFaqIndex === index ? 'rotate(180deg)' : 'rotate(0deg)',
-                  transition: 'transform 0.2s ease',
-                  display: 'inline-block',
-                  marginLeft: '16px',
-                  flexShrink: 0
-                }}>
-                  ▼
-                </span>
-              </div>
-              
-              {/* Answer */}
-              {openFaqIndex === index && (
-                <div style={{
-                  padding: '0 24px 20px 24px',
-                  fontSize: '14px',
-                  color: '#6d7175',
-                  lineHeight: '1.6',
-                  backgroundColor: '#f9fafb',
-                  borderTop: '1px solid #e1e3e5'
-                }}>
-                  {faq.answer}
+            {/* FAQ Items */}
+            <BlockStack gap="0">
+              {faqs.map((faq, index) => (
+                <div key={index}>
+                  <Button
+                    plain
+                    fullWidth
+                    onClick={() => toggleFaq(index)}
+                    textAlign="left"
+                  >
+                    <InlineStack align="space-between" blockAlign="center" gap="400">
+                      <Text as="span" variant="bodyMd" fontWeight="medium">
+                        {faq.question}
+                      </Text>
+                      <div
+                        style={{
+                          transform: openFaqIndex === index ? 'rotate(180deg)' : 'rotate(0deg)',
+                          transition: 'transform 0.2s ease',
+                          display: 'flex',
+                          alignItems: 'center',
+                        }}
+                      >
+                        <ChevronDownIcon />
+                      </div>
+                    </InlineStack>
+                  </Button>
+                  
+                  <Collapsible
+                    open={openFaqIndex === index}
+                    id={`faq-${index}`}
+                    transition={{ duration: '200ms', timingFunction: 'ease' }}
+                  >
+                    <div style={{ padding: '0 16px 16px 16px' }}>
+                      <Text as="p" variant="bodyMd" tone="subdued">
+                        {faq.answer}
+                      </Text>
+                    </div>
+                  </Collapsible>
+                  
+                  {index < faqs.length - 1 && (
+                    <div style={{ borderTop: '1px solid var(--p-border-subdued)' }} />
+                  )}
                 </div>
-              )}
-            </div>
-          ))}
-        </div>
-      </div>
+              ))}
+            </BlockStack>
+          </BlockStack>
+        </Card>
 
-      {/* Additional Help Section */}
-      <div style={{
-        marginTop: '32px',
-        padding: '24px',
-        background: 'white',
-        borderRadius: '8px',
-        border: '1px solid #e1e3e5'
-      }}>
-        <h3 style={{
-          fontSize: '16px',
-          fontWeight: 600,
-          margin: '0 0 8px 0',
-          color: '#202223'
-        }}>
-          Need more help?
-        </h3>
-        <p style={{
-          fontSize: '14px',
-          color: '#6d7175',
-          margin: '0 0 16px 0',
-          lineHeight: '1.6'
-        }}>
-          Check out the{' '}
-          <s-link href={`https://${shop}/admin/themes/current/editor?context=apps`} target="_blank">
-            Theme Editor
-          </s-link>
-          {' '}to customize your funnels, or browse{' '}
-          <s-link href="/app/funnels">
-            Prebuild Funnels
-          </s-link>
-          {' '}to explore more templates.
-        </p>
-      </div>
-    </div>
+        {/* Additional Help Section */}
+        <Card>
+          <BlockStack gap="300">
+            <Text as="h3" variant="headingSm">
+              Need more help?
+            </Text>
+            <Text as="p" variant="bodyMd" tone="subdued">
+              Check out the{' '}
+              <s-link href={`https://${shop}/admin/themes/current/editor?context=apps`} target="_blank">
+                Theme Editor
+              </s-link>
+              {' '}to customize your funnels, or browse{' '}
+              <s-link href="/app/funnels">
+                Prebuild Funnels
+              </s-link>
+              {' '}to explore more templates.
+            </Text>
+          </BlockStack>
+        </Card>
+      </BlockStack>
+    </Page>
   );
 }
 

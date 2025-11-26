@@ -1,0 +1,29 @@
+<svg width="400" height="400" viewBox="0 0 400 400" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="waveGradient1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#E0E7EF" stop-opacity="0.8"/>
+      <stop offset="100%" stop-color="#D1D9E3" stop-opacity="0.6"/>
+    </linearGradient>
+    <linearGradient id="waveGradient2" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#D1D9E3" stop-opacity="0.7"/>
+      <stop offset="100%" stop-color="#C4CED8" stop-opacity="0.5"/>
+    </linearGradient>
+  </defs>
+  
+  <!-- Wave 1 -->
+  <path d="M-50,150 Q100,100 250,150 T550,150" stroke="url(#waveGradient1)" stroke-width="60" fill="none" opacity="0.6"/>
+  
+  <!-- Wave 2 -->
+  <path d="M-50,200 Q150,150 350,200 T750,200" stroke="url(#waveGradient2)" stroke-width="80" fill="none" opacity="0.5"/>
+  
+  <!-- Wave 3 -->
+  <path d="M0,250 Q200,200 400,250" stroke="url(#waveGradient1)" stroke-width="70" fill="none" opacity="0.4"/>
+  
+  <!-- Wave 4 -->
+  <path d="M-30,300 Q120,250 270,300 T570,300" stroke="url(#waveGradient2)" stroke-width="65" fill="none" opacity="0.5"/>
+  
+  <!-- Overlapping shapes -->
+  <ellipse cx="150" cy="180" rx="120" ry="80" fill="url(#waveGradient1)" opacity="0.3"/>
+  <ellipse cx="280" cy="220" rx="100" ry="70" fill="url(#waveGradient2)" opacity="0.25"/>
+</svg>
+
