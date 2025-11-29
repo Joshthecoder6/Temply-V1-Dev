@@ -18,7 +18,7 @@ import {
   Link,
   Grid,
 } from "@shopify/polaris";
-import { Form, useFetcher } from "react-router";
+import { Form } from "react-router";
 import {
   LightbulbIcon,
   FolderIcon,
@@ -26,11 +26,18 @@ import {
   SettingsIcon,
   PlayIcon,
 } from "@shopify/polaris-icons";
+import prisma from "../db.server";
+import { useMantle } from "@heymantle/react";
+import { MANTLE_PLAN_IDS } from "../lib/mantle.server";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { session } = await authenticate.admin(request);
+  const { shop } = session;
 
-  return { shop: session.shop };
+  return {
+    shop: session.shop,
+    planIds: MANTLE_PLAN_IDS,
+  };
 };
 
 type Step = {
@@ -63,15 +70,21 @@ const sections: Section[] = [
   { id: "aiSupport", title: "AI Support", description: "Set up intelligent customer support automation", image: "/onboarding/demo/ImageWithFallback8.png" },
 ];
 
-export default function Onboarding() {
-  const { shop } = useLoaderData<typeof loader>();
+export default function OnboardingPage() {
+  return <OnboardingContent />;
+}
+
+function OnboardingContent() {
+  const { shop, planIds } = useLoaderData<typeof loader>();
+  const { subscribe, customer } = useMantle();
   const [currentStep, setCurrentStep] = useState(1);
   const [isAnimating, setIsAnimating] = useState(false);
   const [onboardingStarted, setOnboardingStarted] = useState(false);
   const [selectedSections, setSelectedSections] = useState<Record<string, boolean>>({});
   const [yearlyPricing, setYearlyPricing] = useState(false);
-  const starterFetcher = useFetcher();
-  const premiumFetcher = useFetcher();
+
+  const isStarterActive = customer?.subscription?.plan?.id === planIds.BEGINNER;
+  const isGrowthActive = customer?.subscription?.plan?.id === planIds.GROWTH;
 
   const handleContinue = () => {
     if (!onboardingStarted) {
@@ -168,10 +181,10 @@ export default function Onboarding() {
                 justifyContent: 'center',
                 cursor: 'pointer',
               }}>
-                <img 
-                  src="/onboarding/VideoIcon.svg" 
-                  alt="Play Video" 
-                  style={{ width: '40px', height: '40px' }} 
+                <img
+                  src="/onboarding/VideoIcon.svg"
+                  alt="Play Video"
+                  style={{ width: '40px', height: '40px' }}
                 />
               </div>
             </div>
@@ -315,7 +328,7 @@ export default function Onboarding() {
                 padding: 0 !important;
               }
             `}</style>
-            
+
             {/* Header Section */}
             <div style={{
               display: 'flex',
@@ -332,21 +345,21 @@ export default function Onboarding() {
                 data-discount-button
               >
                 <InlineStack gap="200" blockAlign="center">
-                  <img 
-                    src="/pricing/Discount-Icon.svg" 
-                    alt="Discount" 
-                    style={{ width: '16px', height: '16px' }} 
+                  <img
+                    src="/pricing/Discount-Icon.svg"
+                    alt="Discount"
+                    style={{ width: '16px', height: '16px' }}
                   />
                   <span>Enter Discount Code</span>
                 </InlineStack>
               </Button>
             </div>
-            
+
             {/* Toggle Section */}
             <div style={{ marginBottom: '24px' }}>
               <Card>
-                <div style={{ 
-                  height: '32px', 
+                <div style={{
+                  height: '32px',
                   padding: '0 16px',
                   display: 'flex',
                   alignItems: 'center',
@@ -371,39 +384,39 @@ export default function Onboarding() {
                       </Text>
                     </div>
                     <div style={{ position: 'relative', display: 'inline-block' }}>
-                    <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer', margin: 0 }}>
-                      <input
-                        type="checkbox"
-                        checked={yearlyPricing}
-                        onChange={(e) => setYearlyPricing(e.target.checked)}
-                        style={{
-                          width: '44px',
-                          height: '24px',
-                          appearance: 'none',
-                          backgroundColor: yearlyPricing ? '#008060' : '#e1e3e5',
-                          borderRadius: '12px',
-                          position: 'relative',
-                          cursor: 'pointer',
-                          transition: 'background-color 0.2s',
-                          margin: 0,
-                        }}
-                      />
-                      <span
-                        style={{
-                          position: 'absolute',
-                          width: '20px',
-                          height: '20px',
-                          borderRadius: '50%',
-                          backgroundColor: '#ffffff',
-                          top: '50%',
-                          transform: 'translateY(-50%)',
-                          left: yearlyPricing ? '22px' : '2px',
-                          transition: 'left 0.2s',
-                          boxShadow: '0 2px 4px rgba(0, 0, 0, 0.2)',
-                          pointerEvents: 'none',
-                        }}
-                      />
-                    </label>
+                      <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer', margin: 0 }}>
+                        <input
+                          type="checkbox"
+                          checked={yearlyPricing}
+                          onChange={(e) => setYearlyPricing(e.target.checked)}
+                          style={{
+                            width: '44px',
+                            height: '24px',
+                            appearance: 'none',
+                            backgroundColor: yearlyPricing ? '#008060' : '#e1e3e5',
+                            borderRadius: '12px',
+                            position: 'relative',
+                            cursor: 'pointer',
+                            transition: 'background-color 0.2s',
+                            margin: 0,
+                          }}
+                        />
+                        <span
+                          style={{
+                            position: 'absolute',
+                            width: '20px',
+                            height: '20px',
+                            borderRadius: '50%',
+                            backgroundColor: '#ffffff',
+                            top: '50%',
+                            transform: 'translateY(-50%)',
+                            left: yearlyPricing ? '22px' : '2px',
+                            transition: 'left 0.2s',
+                            boxShadow: '0 2px 4px rgba(0, 0, 0, 0.2)',
+                            pointerEvents: 'none',
+                          }}
+                        />
+                      </label>
                     </div>
                   </InlineStack>
                 </div>
@@ -516,26 +529,22 @@ export default function Onboarding() {
                       </div>
 
                       {/* CTA Button */}
-                      <starterFetcher.Form method="post" action="/app/api/subscribe">
-                        <input type="hidden" name="plan" value="beginner" />
-                        <input type="hidden" name="source" value="onboarding" />
-                        <Button 
-                          variant="primary" 
-                          size="large" 
-                          fullWidth
-                          submit
-                          loading={starterFetcher.state === "submitting"}
-                        >
-                          Try for free for 7 days
-                        </Button>
-                      </starterFetcher.Form>
+                      <Button
+                        variant="primary"
+                        size="large"
+                        fullWidth
+                        onClick={() => subscribe({ planId: planIds.BEGINNER, returnUrl: "/app/onboarding" })}
+                        disabled={isStarterActive}
+                      >
+                        {isStarterActive ? "Current Plan" : "Try for free for 7 days"}
+                      </Button>
                     </div>
                   </div>
                 </Grid.Cell>
 
                 {/* Premium Plan */}
                 <Grid.Cell columnSpan={{ xs: 6, sm: 6, md: 6, lg: 6, xl: 6 }}>
-                  <div 
+                  <div
                     data-premium-card
                     style={{
                       display: 'flex',
@@ -552,7 +561,7 @@ export default function Onboarding() {
                       zIndex: 2,
                     }}>
                     {/* Recommended Banner */}
-                    <div 
+                    <div
                       data-recommended-banner
                       style={{
                         position: 'absolute',
@@ -579,7 +588,7 @@ export default function Onboarding() {
                         Recommended for you
                       </Text>
                     </div>
-                    
+
                     {/* Background Image with Dark Overlay */}
                     <div style={{
                       position: 'absolute',
@@ -594,7 +603,7 @@ export default function Onboarding() {
                       borderRadius: '16px',
                       zIndex: 0,
                     }} />
-                    
+
                     {/* Dark Overlay */}
                     <div style={{
                       position: 'absolute',
@@ -607,7 +616,7 @@ export default function Onboarding() {
                       borderRadius: '16px',
                       zIndex: 1,
                     }} />
-                    
+
                     {/* Additional Dark Layer */}
                     <div style={{
                       position: 'absolute',
@@ -620,7 +629,7 @@ export default function Onboarding() {
                       borderRadius: '16px',
                       zIndex: 1,
                     }} />
-                    
+
                     {/* Gradient Overlay */}
                     <div style={{
                       position: 'absolute',
@@ -632,7 +641,7 @@ export default function Onboarding() {
                       borderRadius: '16px',
                       zIndex: 2,
                     }} />
-                    
+
                     <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '32px', flex: 1, position: 'relative', zIndex: 3, color: '#FFFFFF' }}>
                       {/* Header */}
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', width: '100%' }}>
@@ -670,7 +679,7 @@ export default function Onboarding() {
                         <div style={{ textAlign: 'right' }}>
                           {yearlyPricing ? (
                             <>
-                              <div 
+                              <div
                                 data-discount-badge
                                 style={{
                                   display: 'inline-block',
@@ -735,23 +744,15 @@ export default function Onboarding() {
                       </div>
 
                       {/* CTA Button */}
-                      <premiumFetcher.Form method="post" action="/app/api/subscribe">
-                        <input type="hidden" name="plan" value="growth" />
-                        <input type="hidden" name="source" value="onboarding" />
-                        <Button 
-                          variant="primary" 
-                          size="large" 
-                          fullWidth
-                          submit
-                          loading={premiumFetcher.state === "submitting"}
-                          style={{
-                            backgroundColor: '#FFFFFF',
-                            color: '#272727',
-                          }}
-                        >
-                          Try for free for 14 days
-                        </Button>
-                      </premiumFetcher.Form>
+                      <Button
+                        variant="primary"
+                        size="large"
+                        fullWidth
+                        onClick={() => subscribe({ planId: planIds.GROWTH, returnUrl: "/app/onboarding" })}
+                        disabled={isGrowthActive}
+                      >
+                        {isGrowthActive ? "Current Plan" : "Try for free for 14 days"}
+                      </Button>
                     </div>
                   </div>
                 </Grid.Cell>
@@ -1020,7 +1021,7 @@ export default function Onboarding() {
                         Trusted by fast-growing brands
                       </Text>
                     </div>
-                    <div style={{ 
+                    <div style={{
                       overflow: 'hidden',
                       width: '100%',
                       position: 'relative',
@@ -1062,7 +1063,7 @@ export default function Onboarding() {
                 </Card>
               </Grid.Cell>
             </Grid>
-            
+
             {/* Bottom Spacing */}
             <div style={{ height: '60px' }}></div>
           </BlockStack>
@@ -1101,12 +1102,12 @@ export default function Onboarding() {
             {/* Connection Lines - Separate segments between icons */}
             {steps.map((step, index) => {
               if (index === steps.length - 1) return null; // No line after last step
-              
+
               const isCompleted = onboardingStarted && currentStep > step.id;
               const segmentWidth = '60px'; // Width of each segment between icons
               const iconSize = 32;
               const gap = 60;
-              
+
               // Calculate the center position between two icons
               // For 3 steps with gap 60px: 
               // Icon 0 center: -60px (half gap to left)
@@ -1114,12 +1115,12 @@ export default function Onboarding() {
               // Icon 2 center: 60px (half gap to right)
               // Line between icon 0 and 1: at -30px (halfway between -60 and 0)
               // Line between icon 1 and 2: at 30px (halfway between 0 and 60)
-              
+
               // For each step, calculate its center position
               const stepCenter = (index - (steps.length - 1) / 2) * (iconSize + gap);
               const nextStepCenter = ((index + 1) - (steps.length - 1) / 2) * (iconSize + gap);
               const lineCenter = (stepCenter + nextStepCenter) / 2;
-              
+
               return (
                 <div
                   key={`line-${step.id}`}
@@ -1139,63 +1140,63 @@ export default function Onboarding() {
               );
             })}
 
-              {/* Steps */}
-              {steps.map((step, index) => {
-                const StepIcon = step.icon;
-                const isActive = onboardingStarted && currentStep >= step.id;
-                const isCurrent = onboardingStarted && currentStep === step.id;
+            {/* Steps */}
+            {steps.map((step, index) => {
+              const StepIcon = step.icon;
+              const isActive = onboardingStarted && currentStep >= step.id;
+              const isCurrent = onboardingStarted && currentStep === step.id;
 
-                return (
+              return (
+                <div
+                  key={step.id}
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    gap: '4px',
+                    position: 'relative',
+                    zIndex: 2,
+                    flex: '0 0 auto',
+                    opacity: onboardingStarted ? 1 : 0.5,
+                    transition: 'opacity 0.3s ease',
+                  }}
+                >
                   <div
-                    key={step.id}
                     style={{
+                      width: '32px',
+                      height: '32px',
+                      borderRadius: '8px',
+                      backgroundColor: '#ffffff',
+                      border: isActive ? '2px solid #202223' : '2px solid #e1e3e5',
                       display: 'flex',
-                      flexDirection: 'column',
                       alignItems: 'center',
-                      gap: '4px',
-                      position: 'relative',
-                      zIndex: 2,
-                      flex: '0 0 auto',
-                      opacity: onboardingStarted ? 1 : 0.5,
-                      transition: 'opacity 0.3s ease',
+                      justifyContent: 'center',
+                      transition: 'all 0.5s cubic-bezier(0.4, 0, 0.2, 1)',
+                      transform: isCurrent ? 'scale(1.1)' : 'scale(1)',
+                      boxShadow: isCurrent ? '0 2px 4px rgba(0, 0, 0, 0.1)' : '0 1px 2px rgba(0, 0, 0, 0.05)',
                     }}
                   >
-                    <div
+                    <StepIcon
                       style={{
-                        width: '32px',
-                        height: '32px',
-                        borderRadius: '8px',
-                        backgroundColor: '#ffffff',
-                        border: isActive ? '2px solid #202223' : '2px solid #e1e3e5',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        transition: 'all 0.5s cubic-bezier(0.4, 0, 0.2, 1)',
-                        transform: isCurrent ? 'scale(1.1)' : 'scale(1)',
-                        boxShadow: isCurrent ? '0 2px 4px rgba(0, 0, 0, 0.1)' : '0 1px 2px rgba(0, 0, 0, 0.05)',
+                        width: '18px',
+                        height: '18px',
+                        color: isActive ? '#202223' : '#6d7175',
                       }}
-                    >
-                      <StepIcon
-                        style={{
-                          width: '18px',
-                          height: '18px',
-                          color: isActive ? '#202223' : '#6d7175',
-                        }}
-                      />
-                    </div>
-                    <Text
-                      as="span"
-                      variant="bodySm"
-                      fontWeight={isCurrent ? 'semibold' : 'regular'}
-                      tone={isActive ? 'base' : 'subdued'}
-                    >
-                      {step.name}
-                    </Text>
+                    />
                   </div>
-                );
-              })}
-            </div>
+                  <Text
+                    as="span"
+                    variant="bodySm"
+                    fontWeight={isCurrent ? 'semibold' : 'regular'}
+                    tone={isActive ? 'base' : 'subdued'}
+                  >
+                    {step.name}
+                  </Text>
+                </div>
+              );
+            })}
           </div>
+        </div>
 
         {/* Content Area */}
         <div
@@ -1218,7 +1219,7 @@ export default function Onboarding() {
             )}
           </div>
           <div>
-            <Link onClick={() => {/* Skip logic */}} removeUnderline>
+            <Link onClick={() => {/* Skip logic */ }} removeUnderline>
               <Text as="span" variant="bodyMd" tone="subdued">
                 Skip onboarding
               </Text>

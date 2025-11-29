@@ -29,6 +29,9 @@ type Pages = {
   "/webhooks/shop/redact": {
     params: {};
   };
+  "/api/mantle/webhooks": {
+    params: {};
+  };
   "/auth/login": {
     params: {};
   };
@@ -50,9 +53,6 @@ type Pages = {
     params: {};
   };
   "/app/theme-sections": {
-    params: {};
-  };
-  "/app/api/subscribe": {
     params: {};
   };
   "/app/features-vote": {
@@ -81,7 +81,7 @@ type Pages = {
 type RouteFiles = {
   "root.tsx": {
     id: "root";
-    page: "/" | "/webhooks/customers/data_request" | "/webhooks/app/scopes_update" | "/webhooks/customers/redact" | "/webhooks/app/uninstalled" | "/webhooks/shop/redact" | "/auth/login" | "/auth/*" | "/app" | "/app/api/activate-embed" | "/app/register-webhooks" | "/app/api/check-embed" | "/app/theme-sections" | "/app/api/subscribe" | "/app/features-vote" | "/app/onboarding" | "/app/my-pages" | "/app/funnels" | "/app/pricing" | "/app/pages" | "/app/help";
+    page: "/" | "/webhooks/customers/data_request" | "/webhooks/app/scopes_update" | "/webhooks/customers/redact" | "/webhooks/app/uninstalled" | "/webhooks/shop/redact" | "/api/mantle/webhooks" | "/auth/login" | "/auth/*" | "/app" | "/app/api/activate-embed" | "/app/register-webhooks" | "/app/api/check-embed" | "/app/theme-sections" | "/app/features-vote" | "/app/onboarding" | "/app/my-pages" | "/app/funnels" | "/app/pricing" | "/app/pages" | "/app/help";
   };
   "routes/webhooks.customers.data_request.tsx": {
     id: "routes/webhooks.customers.data_request";
@@ -103,6 +103,10 @@ type RouteFiles = {
     id: "routes/webhooks.shop.redact";
     page: "/webhooks/shop/redact";
   };
+  "routes/api.mantle.webhooks.tsx": {
+    id: "routes/api.mantle.webhooks";
+    page: "/api/mantle/webhooks";
+  };
   "routes/auth.login/route.tsx": {
     id: "routes/auth.login";
     page: "/auth/login";
@@ -117,7 +121,7 @@ type RouteFiles = {
   };
   "routes/app.tsx": {
     id: "routes/app";
-    page: "/app" | "/app/api/activate-embed" | "/app/register-webhooks" | "/app/api/check-embed" | "/app/theme-sections" | "/app/api/subscribe" | "/app/features-vote" | "/app/onboarding" | "/app/my-pages" | "/app/funnels" | "/app/pricing" | "/app/pages" | "/app/help";
+    page: "/app" | "/app/api/activate-embed" | "/app/register-webhooks" | "/app/api/check-embed" | "/app/theme-sections" | "/app/features-vote" | "/app/onboarding" | "/app/my-pages" | "/app/funnels" | "/app/pricing" | "/app/pages" | "/app/help";
   };
   "routes/app.api.activate-embed.tsx": {
     id: "routes/app.api.activate-embed";
@@ -134,10 +138,6 @@ type RouteFiles = {
   "routes/app.theme-sections.tsx": {
     id: "routes/app.theme-sections";
     page: "/app/theme-sections";
-  };
-  "routes/app.api.subscribe.tsx": {
-    id: "routes/app.api.subscribe";
-    page: "/app/api/subscribe";
   };
   "routes/app.features-vote.tsx": {
     id: "routes/app.features-vote";
@@ -180,6 +180,7 @@ type RouteModules = {
   "routes/webhooks.customers.redact": typeof import("./app/routes/webhooks.customers.redact.tsx");
   "routes/webhooks.app.uninstalled": typeof import("./app/routes/webhooks.app.uninstalled.tsx");
   "routes/webhooks.shop.redact": typeof import("./app/routes/webhooks.shop.redact.tsx");
+  "routes/api.mantle.webhooks": typeof import("./app/routes/api.mantle.webhooks.tsx");
   "routes/auth.login": typeof import("./app/routes/auth.login/route.tsx");
   "routes/_index": typeof import("./app/routes/_index/route.tsx");
   "routes/auth.$": typeof import("./app/routes/auth.$.tsx");
@@ -188,7 +189,6 @@ type RouteModules = {
   "routes/app.register-webhooks": typeof import("./app/routes/app.register-webhooks.tsx");
   "routes/app.api.check-embed": typeof import("./app/routes/app.api.check-embed.tsx");
   "routes/app.theme-sections": typeof import("./app/routes/app.theme-sections.tsx");
-  "routes/app.api.subscribe": typeof import("./app/routes/app.api.subscribe.tsx");
   "routes/app.features-vote": typeof import("./app/routes/app.features-vote.tsx");
   "routes/app.onboarding": typeof import("./app/routes/app.onboarding.tsx");
   "routes/app.my-pages": typeof import("./app/routes/app.my-pages.tsx");
