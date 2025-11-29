@@ -34,11 +34,9 @@ function PricingContent() {
     try {
       console.log("DEBUG: handleSubscribe called with:", { planId, discount, customerId: customer?.id });
 
-      // Call subscribe with proper parameters: planId, customerId, discount, returnUrl
+      // Call subscribe with planId and returnUrl (customerId and discount are handled by the provider)
       await subscribe({
         planId,
-        customerId: customer?.id,
-        discount,
         returnUrl: "/app/pricing"
       });
     } catch (error) {
