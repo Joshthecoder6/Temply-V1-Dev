@@ -29,18 +29,28 @@ function PricingContent() {
   const isStarterActive = customer?.subscription?.plan?.id === planIds.BEGINNER;
   const isGrowthActive = customer?.subscription?.plan?.id === planIds.GROWTH;
 
+  // Debug: Test if useMantle works
+  console.log("DEBUG: useMantle result:", { subscribe: typeof subscribe, customer });
+
   // Handle subscription with proper parameters
   const handleSubscribe = async (planId: string, discount?: string) => {
+    console.log("DEBUG: handleSubscribe STARTED with planId:", planId);
+
     try {
       console.log("DEBUG: handleSubscribe called with:", { planId, discount, customerId: customer?.id });
 
-      // Call subscribe with planId and returnUrl (customerId and discount are handled by the provider)
+      // Try with just planId first (let Mantle handle customer and returnUrl automatically)
+      console.log("DEBUG: About to call subscribe with:", { planId });
       await subscribe({
-        planId,
-        returnUrl: "/app/pricing"
+        planId
       });
+      console.log("DEBUG: subscribe call completed successfully");
     } catch (error) {
       console.error("Subscription error:", error);
+      console.error("Error details:", {
+        message: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined
+      });
     }
   };
 
@@ -289,7 +299,10 @@ function PricingContent() {
                     variant="primary"
                     size="large"
                     fullWidth
-                    onClick={() => handleSubscribe(planIds.BEGINNER)}
+                    onClick={() => {
+                      console.log("DEBUG: Starter button clicked, calling handleSubscribe");
+                      handleSubscribe(planIds.BEGINNER);
+                    }}
                     disabled={isStarterActive}
                   >
                     {isStarterActive ? "Current Plan" : "Try for free for 7 days"}
@@ -504,7 +517,10 @@ function PricingContent() {
                     variant="primary"
                     size="large"
                     fullWidth
-                    onClick={() => handleSubscribe(planIds.GROWTH)}
+                    onClick={() => {
+                      console.log("DEBUG: Growth button clicked, calling handleSubscribe");
+                      handleSubscribe(planIds.GROWTH);
+                    }}
                     disabled={isGrowthActive}
                   >
                     {isGrowthActive ? "Current Plan" : "Try for free for 14 days"}
