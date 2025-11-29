@@ -518,6 +518,7 @@ export default function Onboarding() {
                       {/* CTA Button */}
                       <starterFetcher.Form method="post" action="/app/api/subscribe">
                         <input type="hidden" name="plan" value="beginner" />
+                        <input type="hidden" name="source" value="onboarding" />
                         <Button 
                           variant="primary" 
                           size="large" 
@@ -736,6 +737,7 @@ export default function Onboarding() {
                       {/* CTA Button */}
                       <premiumFetcher.Form method="post" action="/app/api/subscribe">
                         <input type="hidden" name="plan" value="growth" />
+                        <input type="hidden" name="source" value="onboarding" />
                         <Button 
                           variant="primary" 
                           size="large" 

@@ -5,6 +5,10 @@ import { createReadableStreamFromReadable } from "@react-router/node";
 import { type EntryContext } from "react-router";
 import { isbot } from "isbot";
 import { addDocumentResponseHeaders } from "./shopify.server";
+import dotenv from 'dotenv';
+
+// Load environment variables in server entry point
+dotenv.config();
 
 export const streamTimeout = 5000;
 

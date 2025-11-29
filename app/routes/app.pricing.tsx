@@ -257,6 +257,7 @@ export default function Pricing() {
                   {/* CTA Button */}
                   <starterFetcher.Form method="post" action="/app/api/subscribe">
                     <input type="hidden" name="plan" value="beginner" />
+                    <input type="hidden" name="source" value="pricing" />
                     <Button 
                       variant="primary" 
                       size="large" 
@@ -475,6 +476,7 @@ export default function Pricing() {
                     {/* CTA Button */}
                     <premiumFetcher.Form method="post" action="/app/api/subscribe">
                       <input type="hidden" name="plan" value="growth" />
+                      <input type="hidden" name="source" value="pricing" />
                       <Button
                         variant="primary"
                         size="large"

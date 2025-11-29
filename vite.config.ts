@@ -1,6 +1,8 @@
 import { reactRouter } from "@react-router/dev/vite";
 import { defineConfig, type UserConfig } from "vite";
 import tsconfigPaths from "vite-tsconfig-paths";
+import dotenv from 'dotenv';
+dotenv.config();
 
 // Related: https://github.com/remix-run/remix/issues/2835#issuecomment-1144102176
 // Replace the HOST env var with SHOPIFY_APP_URL so that it doesn't break the Vite server.
@@ -53,6 +55,11 @@ export default defineConfig({
     reactRouter(),
     tsconfigPaths(),
   ],
+  define: {
+    'process.env.MANTLE_APP_ID': JSON.stringify(process.env.MANTLE_APP_ID),
+    'process.env.MANTLE_API_KEY': JSON.stringify(process.env.MANTLE_API_KEY),
+    'process.env.SHOPIFY_APP_URL': JSON.stringify(process.env.SHOPIFY_APP_URL),
+  },
   build: {
     assetsInlineLimit: 0,
   },
