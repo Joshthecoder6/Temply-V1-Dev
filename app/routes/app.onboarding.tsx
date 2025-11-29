@@ -27,7 +27,7 @@ import {
   PlayIcon,
 } from "@shopify/polaris-icons";
 import prisma from "../db.server";
-import { useMantle } from "@heymantle/react";
+import { useMantle } from "../components/MantleAppProvider";
 import { MANTLE_PLAN_IDS } from "../lib/mantle.server";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {

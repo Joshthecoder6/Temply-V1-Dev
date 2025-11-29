@@ -4,7 +4,7 @@ import { authenticate } from "../shopify.server";
 import { useState } from "react";
 import { useLoaderData } from "react-router";
 import prisma from "../db.server";
-import { useMantle } from "@heymantle/react";
+import { useMantle } from "../components/MantleAppProvider";
 import { MANTLE_PLAN_IDS } from "../lib/mantle.server";
 import { identifyCustomer } from "../lib/mantle.server";
 

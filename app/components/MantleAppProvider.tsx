@@ -45,26 +45,17 @@ function useExtendedMantle(): ExtendedMantleContext {
     return {
         subscribe: async (params) => {
             console.log("EXTENDED SUBSCRIBE:", params);
-            return originalMantle.subscribe({
-                planId: params.planId,
-                returnUrl: params.returnUrl
-            });
+            return originalMantle.subscribe(params);
         },
         upgrade: async (params) => {
             console.log("EXTENDED UPGRADE:", params);
             // For now, upgrade uses the same logic as subscribe
-            return originalMantle.subscribe({
-                planId: params.planId,
-                returnUrl: params.returnUrl
-            });
+            return originalMantle.subscribe(params);
         },
         downgrade: async (params) => {
             console.log("EXTENDED DOWNGRADE:", params);
             // For now, downgrade uses the same logic as subscribe
-            return originalMantle.subscribe({
-                planId: params.planId,
-                returnUrl: params.returnUrl
-            });
+            return originalMantle.subscribe(params);
         },
         cancel: async (params) => {
             console.log("EXTENDED CANCEL:", params);
