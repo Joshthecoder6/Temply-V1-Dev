@@ -84,3 +84,65 @@ model Template {
   @@index([category])
   @@index([isFeatured])
 }
+
+model Subscription {
+  id            String    @id @default(uuid())
+  shop          String    @unique
+  planId        String
+  planName      String
+  status        String    // ACTIVE, TRIAL, CANCELED, EXPIRED
+  trialExpiresAt DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+model Section {
+  id            String    @id @default(uuid())
+  name          String    @unique // Internal identifier (e.g., "article-body")
+  displayName   String    // Name for Theme Sections page (without "tp-" prefix, e.g., "Article Body")
+  editorName    String    // Name for Shopify Editor (with "TP - " prefix, e.g., "TP - Article Body")
+  liquidCode    String    // Complete Liquid section code
+  category      String?   // Optional category for grouping
+  previewImage  String?   // URL to preview image
+  description   String?   // Section description
+  isActive      Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([category])
+  @@index([isActive])
+}
+
+
+model AISection {
+  id            String    @id @default(uuid())
+  shop          String
+  sectionName   String
+  sectionType   String    // testimonial, live-activity, trust-badge, counter, custom
+  htmlCode      String    // Generated HTML code
+  cssCode       String?   // Generated CSS code
+  jsCode        String?   // Generated JS code (optional)
+  liquidCode    String?   // Shopify Liquid code
+  prompt        String    // Original user prompt
+  previewData   String?   // JSON with preview configuration
+  status        String    @default("draft") // draft, applied, archived
+  appliedAt     DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([shop])
+  @@index([status])
+}
+
+model ChatConversation {
+  id            String    @id @default(uuid())
+  shop          String
+  title         String    // Auto-generated from first user message
+  messages      String    // JSON string of ChatMessage[]
+  lastMessageAt DateTime  @default(now())
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([shop])
+  @@index([shop, lastMessageAt])
+}

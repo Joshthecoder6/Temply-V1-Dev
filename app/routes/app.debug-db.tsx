@@ -1,6 +1,5 @@
 
-import { json } from "@remix-run/node";
-import { useLoaderData } from "@remix-run/react";
+import { useLoaderData } from "react-router";
 import prisma from "../db.server";
 
 export const loader = async () => {
@@ -9,7 +8,7 @@ export const loader = async () => {
         const aiSections = await prisma.aISection.findMany();
         const appSettings = await prisma.appSettings.findMany();
 
-        return json({
+        return {
             status: "ok",
             counts: {
                 sections: sections.length,
@@ -20,14 +19,14 @@ export const loader = async () => {
             env: {
                 DATABASE_URL: process.env.DATABASE_URL ? "Set" : "Not Set"
             }
-        });
-    } catch (error) {
-        return json({ status: "error", message: error.message, stack: error.stack });
+        };
+    } catch (error: any) {
+        return { status: "error", message: error.message, stack: error.stack };
     }
 };
 
 export default function DebugDB() {
-    const data = useLoaderData();
+    const data = useLoaderData<typeof loader>();
     return (
         <div style={{ padding: 20, fontFamily: 'monospace' }}>
             <h1>Database Debug</h1>
