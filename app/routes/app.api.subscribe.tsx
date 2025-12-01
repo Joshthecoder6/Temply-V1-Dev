@@ -27,14 +27,17 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       source,
     });
 
-    if (!planType || (planType !== "beginner" && planType !== "growth")) {
-      return Response.json({ error: "Invalid plan type. Must be 'beginner' or 'growth'" }, { status: 400 });
+    if (!planType || !["beginner", "growth", "beginner_yearly", "growth_yearly"].includes(planType)) {
+      return Response.json({ error: "Invalid plan type" }, { status: 400 });
     }
 
     // Map plan type to Mantle plan name
-    const mantlePlanName = planType === "beginner"
-      ? "Beginner Plan"
-      : "Growth Plan";
+    let mantlePlanName: string;
+    if (planType === "beginner") mantlePlanName = "Beginner Plan";
+    else if (planType === "growth") mantlePlanName = "Growth Plan";
+    else if (planType === "beginner_yearly") mantlePlanName = "Beginner Plan Yearly";
+    else if (planType === "growth_yearly") mantlePlanName = "Growth Plan Yearly";
+    else mantlePlanName = "Beginner Plan";
 
     console.log('Subscribe action - Identifying customer in Mantle:', {
       shop: session.shop,
@@ -67,7 +70,23 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     });
 
     // Get the correct plan ID from MANTLE_PLAN_IDS
-    const planId = planType === "beginner" ? MANTLE_PLAN_IDS.BEGINNER : MANTLE_PLAN_IDS.GROWTH;
+    let planId: string;
+    switch (planType) {
+      case "beginner":
+        planId = MANTLE_PLAN_IDS.BEGINNER;
+        break;
+      case "growth":
+        planId = MANTLE_PLAN_IDS.GROWTH;
+        break;
+      case "beginner_yearly":
+        planId = MANTLE_PLAN_IDS.BEGINNER_YEARLY;
+        break;
+      case "growth_yearly":
+        planId = MANTLE_PLAN_IDS.GROWTH_YEARLY;
+        break;
+      default:
+        planId = MANTLE_PLAN_IDS.BEGINNER; // Fallback
+    }
 
     console.log('Subscribe action - Creating subscription checkout:', {
       planId,

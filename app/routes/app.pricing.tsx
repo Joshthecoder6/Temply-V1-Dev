@@ -342,7 +342,7 @@ function PricingContent() {
 
                   {/* CTA Button */}
                   <fetcher.Form action="/app/api/subscribe" method="post">
-                    <input type="hidden" name="plan" value="beginner" />
+                    <input type="hidden" name="plan" value={yearlyPricing ? "beginner_yearly" : "beginner"} />
                     <input type="hidden" name="source" value="pricing" />
                     <Button
                       variant="primary"
@@ -562,7 +562,7 @@ function PricingContent() {
 
                   {/* CTA Button */}
                   <fetcher.Form action="/app/api/subscribe" method="post">
-                    <input type="hidden" name="plan" value="growth" />
+                    <input type="hidden" name="plan" value={yearlyPricing ? "growth_yearly" : "growth"} />
                     <input type="hidden" name="source" value="pricing" />
                     <Button
                       variant="primary"
