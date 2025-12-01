@@ -329,6 +329,10 @@ export async function createSubscriptionCheckout(
         planId = MANTLE_PLAN_IDS.BEGINNER;
       } else if (planName === "Growth Plan") {
         planId = MANTLE_PLAN_IDS.GROWTH;
+      } else if (planName === "Beginner Plan Yearly") {
+        planId = MANTLE_PLAN_IDS.BEGINNER_YEARLY;
+      } else if (planName === "Growth Plan Yearly") {
+        planId = MANTLE_PLAN_IDS.GROWTH_YEARLY;
       } else {
         throw new Error(`Plan "${planName}" not found in Mantle. Available plans: ${plans.map((p: any) => p.name).join(', ')}`);
       }
