@@ -15,24 +15,25 @@ interface ExtendedMantleContext {
         customerId?: string;
         discount?: string;
         returnUrl?: string;
-    }) => Promise<void>;
+    }) => Promise<any>;
     upgrade: (params: {
         planId: string;
         customerId?: string;
         discount?: string;
         returnUrl?: string;
-    }) => Promise<void>;
+    }) => Promise<any>;
     downgrade: (params: {
         planId: string;
         customerId?: string;
         discount?: string;
         returnUrl?: string;
-    }) => Promise<void>;
+    }) => Promise<any>;
     cancel: (params: {
         customerId?: string;
         returnUrl?: string;
-    }) => Promise<void>;
+    }) => Promise<any>;
     customer: any;
+    plans: any[];
 }
 
 // Create extended context
@@ -40,7 +41,35 @@ const ExtendedMantleContext = createContext<ExtendedMantleContext | null>(null);
 
 // Hook to use the extended mantle functionality
 function useExtendedMantle(): ExtendedMantleContext {
-    const originalMantle = useOriginalMantle();
+    // During SSR, useOriginalMantle might throw or return null
+    // We handle this gracefully by providing a fallback
+    let originalMantle;
+    try {
+        originalMantle = useOriginalMantle();
+    } catch (error) {
+        // SSR fallback - these will be replaced on client side
+        console.warn('Mantle hooks not available during SSR, using fallback');
+        return {
+            subscribe: async () => { throw new Error('Mantle not initialized'); },
+            upgrade: async () => { throw new Error('Mantle not initialized'); },
+            downgrade: async () => { throw new Error('Mantle not initialized'); },
+            cancel: async () => { throw new Error('Mantle not initialized'); },
+            customer: null,
+            plans: []
+        };
+    }
+
+    if (!originalMantle) {
+        // Fallback if originalMantle is null/undefined
+        return {
+            subscribe: async () => { throw new Error('Mantle not initialized'); },
+            upgrade: async () => { throw new Error('Mantle not initialized'); },
+            downgrade: async () => { throw new Error('Mantle not initialized'); },
+            cancel: async () => { throw new Error('Mantle not initialized'); },
+            customer: null,
+            plans: []
+        };
+    }
 
     return {
         subscribe: async (params) => {
@@ -62,7 +91,8 @@ function useExtendedMantle(): ExtendedMantleContext {
             // Cancel implementation - this would need to be implemented based on Mantle API
             throw new Error("Cancel function not yet implemented");
         },
-        customer: originalMantle.customer
+        customer: originalMantle.customer,
+        plans: originalMantle.plans || []
     };
 }
 
@@ -91,7 +121,16 @@ function ExtendedMantleProvider({ children }: { children: ReactNode }) {
 export function useMantle() {
     const context = useContext(ExtendedMantleContext);
     if (!context) {
-        throw new Error("useMantle must be used within a MantleAppProvider");
+        // During SSR or before hydration, return a fallback
+        // This prevents server errors while still providing type safety
+        console.warn('useMantle called outside MantleAppProvider context');
+        return {
+            subscribe: async () => { throw new Error('Mantle not initialized'); },
+            upgrade: async () => { throw new Error('Mantle not initialized'); },
+            downgrade: async () => { throw new Error('Mantle not initialized'); },
+            cancel: async () => { throw new Error('Mantle not initialized'); },
+            customer: null
+        };
     }
     return context;
 }

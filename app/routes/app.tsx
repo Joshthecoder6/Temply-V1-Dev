@@ -53,6 +53,7 @@ export default function App() {
             <s-link href="/app/funnels">Prebuild Funnels</s-link>
             <s-link href="/app/my-pages">My Pages</s-link>
             <s-link href="/app/theme-sections">Theme Sections</s-link>
+            <s-link href="/app/ai-generator">✨ Temply AI</s-link>
             <s-link href="/app/features-vote">Features Vote</s-link>
             <s-link href="/app/pricing">Pricing</s-link>
             <s-link href="/app/help">Help</s-link>

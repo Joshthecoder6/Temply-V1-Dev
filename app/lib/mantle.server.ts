@@ -94,6 +94,7 @@ function getMantleCustomerHeaders(customerApiToken: string, shopifyAccessToken?:
  * Identify or create a customer in Mantle
  * @param customerId - Unique identifier for the customer (e.g., shop domain)
  * @param customerData - Additional customer data
+ * @param accessToken - Shopify access token (required for subscription creation)
  */
 export async function identifyCustomer(
   customerId: string,
@@ -102,7 +103,8 @@ export async function identifyCustomer(
     name?: string;
     metadata?: Record<string, any>;
     myshopifyDomain?: string;
-  }
+  },
+  accessToken?: string
 ): Promise<MantleCustomer> {
   try {
     const headers = getMantleAppHeaders();
@@ -125,6 +127,7 @@ export async function identifyCustomer(
       email: customerData?.email || `${normalizedCustomerId}@shopify.com`, // DYNAMIC - based on shop
       name: customerData?.name || normalizedCustomerId, // DYNAMIC - based on shop
       ...(customerData?.metadata && { metadata: customerData.metadata }), // DYNAMIC - can include shop-specific data
+      ...(accessToken && { accessToken }), // OPTIONAL - Shopify access token for subscription creation
     };
 
     console.log("IDENTIFY REQUEST BODY (FINAL) →", JSON.stringify(body, null, 2));
@@ -140,7 +143,7 @@ export async function identifyCustomer(
     console.log('Mantle identify request:', {
       url: endpoint,
       headers: safeHeaders,
-      body,
+      body: { ...body, accessToken: accessToken ? '[REDACTED]' : undefined },
     });
 
     const response = await fetch(endpoint, {
@@ -263,19 +266,145 @@ export async function getPlans(customerApiToken?: string): Promise<MantlePlan[]>
 
 /**
  * Plan ID constants (fallback if getPlans() fails)
- * These IDs are extracted from Mantle dashboard URLs:
- * - Beginner Plan: https://app.heymantle.com/apps/.../plans/b6c3c289-2f34-404c-b3c1-a553e6935756
- * - Growth Plan: https://app.heymantle.com/apps/.../plans/a5331f09-bc03-4709-8af6-f2f45c515bf7
+ * These IDs are the actual plan IDs from your Mantle account.
+ * Retrieved from customer.plans in MantleProvider.
  * 
  * You can override these via environment variables if needed:
  * MANTLE_PLAN_ID_BEGINNER and MANTLE_PLAN_ID_GROWTH
  */
 export const MANTLE_PLAN_IDS = {
-  BEGINNER: process.env.MANTLE_PLAN_ID_BEGINNER || 'b6c3c289-2f34-404c-b3c1-a553e6935756',
-  GROWTH: process.env.MANTLE_PLAN_ID_GROWTH || 'a5331f09-bc03-4709-8af6-f2f45c515bf7',
+  BEGINNER: process.env.MANTLE_PLAN_ID_BEGINNER || 'bdb0a7e1-55ae-42d2-b051-e546c0fa8509',
+  GROWTH: process.env.MANTLE_PLAN_ID_GROWTH || 'dd16fe78-ba82-4ec8-a418-dc16e826828d',
 };
 
 
+
+/**
+ * Create subscription checkout URL using Mantle API
+ * @param customerId - The customer identifier (shop domain)
+ * @param planName - The plan name (e.g., "Beginner Plan")
+ * @param customerApiToken - The customer's API token from Mantle
+ * @param returnUrl - Optional return URL after successful checkout
+ */
+export async function createSubscriptionCheckout(
+  customerId: string,
+  planName: string,
+  customerApiToken: string,
+  returnUrl?: string
+): Promise<string> {
+  try {
+    // Fetch available plans from Mantle to get the correct plan ID
+    console.log('Fetching plans from Mantle to get correct plan ID...');
+    const plans = await getPlans(customerApiToken);
+
+    console.log('Available plans from Mantle:', {
+      count: plans.length,
+      plans: plans.map((p: any) => ({ id: p.id, name: p.name })),
+    });
+
+    // Find the plan by name
+    let selectedPlan = plans.find((p: any) =>
+      p.name?.toLowerCase() === planName.toLowerCase()
+    );
+
+    // If not found by exact match, try partial match
+    if (!selectedPlan) {
+      selectedPlan = plans.find((p: any) =>
+        p.name?.toLowerCase().includes(planName.toLowerCase().replace(' plan', ''))
+      );
+    }
+
+    if (!selectedPlan || !selectedPlan.id) {
+      console.error('Plan not found in Mantle:', {
+        requestedPlanName: planName,
+        availablePlans: plans.map((p: any) => p.name),
+      });
+
+      // Fallback to hardcoded plan IDs if plans can't be fetched
+      console.log('Trying fallback to hardcoded plan IDs...');
+      let planId: string;
+      if (planName === "Beginner Plan") {
+        planId = MANTLE_PLAN_IDS.BEGINNER;
+      } else if (planName === "Growth Plan") {
+        planId = MANTLE_PLAN_IDS.GROWTH;
+      } else {
+        throw new Error(`Plan "${planName}" not found in Mantle. Available plans: ${plans.map((p: any) => p.name).join(', ')}`);
+      }
+
+      console.log('Using fallback plan ID:', { planName, planId });
+      selectedPlan = { id: planId, name: planName };
+    }
+
+    const planId = selectedPlan.id;
+
+    console.log('Creating subscription checkout:', {
+      planId,
+      planName: selectedPlan.name,
+      returnUrl,
+      customerId,
+    });
+
+    // Create subscription using customer token - Mantle API expects /subscriptions endpoint
+    const requestBody: any = {
+      planId: planId,  // Mantle API uses camelCase
+    };
+
+    if (returnUrl) {
+      requestBody.returnUrl = returnUrl;  // Mantle API uses camelCase
+    }
+
+    const endpoint = `${MANTLE_API_BASE_URL}/subscriptions`;
+
+    console.log('Mantle subscription request:', {
+      url: endpoint,
+      method: 'POST',
+      hasCustomerToken: !!customerApiToken,
+      body: requestBody,
+    });
+
+    const response = await fetch(endpoint, {
+      method: 'POST',
+      headers: getMantleCustomerHeaders(customerApiToken),
+      body: JSON.stringify(requestBody),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Mantle subscription API error response:', {
+        status: response.status,
+        statusText: response.statusText,
+        errorText,
+        endpoint,
+        customerId,
+        hasCustomerToken: !!customerApiToken,
+      });
+      throw new Error(`Mantle API error: ${response.status} - ${errorText}`);
+    }
+
+    const data = await response.json();
+    console.log('Mantle subscription response:', data);
+
+    // Handle different response structures - Mantle returns confirmationUrl
+    const confirmationUrl =
+      data.confirmationUrl ||
+      data.confirmation_url ||
+      data.subscription?.confirmationUrl ||
+      data.subscription?.confirmation_url ||
+      data.checkout_url ||
+      data.url ||
+      '';
+
+    if (!confirmationUrl) {
+      console.error('No confirmation URL in Mantle response:', data);
+      throw new Error('Mantle API did not return a confirmation URL');
+    }
+
+    return confirmationUrl;
+  } catch (error) {
+    console.error('Error creating subscription checkout:', error);
+    throw error;
+  }
+}
 
 /**
  * Verify Mantle Webhook Signature

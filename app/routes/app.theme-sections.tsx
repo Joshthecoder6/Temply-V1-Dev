@@ -15,118 +15,36 @@ import {
 } from "@shopify/polaris";
 import { ChevronLeftIcon, ChevronRightIcon, ExternalIcon } from "@shopify/polaris-icons";
 import prisma from "../db.server";
-import * as fs from 'fs';
-import * as path from 'path';
-
-// Helper: Extrahiere Section-Name aus Liquid-Code
-function extractSectionNameFromLiquid(liquidCode: string): string {
-  const schemaRegex = /{%\s*schema\s*%}([\s\S]*?){%\s*endschema\s*%}/;
-  const match = liquidCode.match(schemaRegex);
-  
-  if (!match) return 'Unknown Section';
-  
-  try {
-    const schema = JSON.parse(match[1].trim());
-    // Entferne "TP: " Präfix falls vorhanden
-    const name = schema.name || 'Unknown Section';
-    return name.replace(/^TP:\s*/, '').trim();
-  } catch {
-    return 'Unknown Section';
-  }
-}
-
-// Helper: Extrahiere Section-Beschreibung aus Liquid-Code (falls vorhanden)
-function extractSectionDescriptionFromLiquid(liquidCode: string): string {
-  // Standard-Beschreibung basierend auf Dateiname
-  return 'A customizable section for your theme.';
-}
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   await authenticate.admin(request);
 
   try {
-    // Lade alle Templates aus der DB
-    const templates = await prisma.template.findMany({
+    // Lade alle aktiven Sections aus der neuen Section-Tabelle
+    const sections = await prisma.section.findMany({
       where: {
         isActive: true
+      },
+      orderBy: {
+        displayName: 'asc'
       }
     });
 
-    // Sammle alle eindeutigen Sections
-    const sectionsMap = new Map<string, {
-      id: string;
-      name: string;
-      description: string;
-      previewImage: string;
-      filename: string;
-    }>();
+    console.log(`[Theme Sections Loader] Found ${sections.length} sections in database`);
 
-    const templatesDir = path.join(process.cwd(), 'prisma', 'templates');
+    // Konvertiere Sections in das erwartete Format
+    const formattedSections = sections.map((section) => ({
+      id: section.id,
+      name: section.displayName, // Verwende displayName (ohne "tp-" Präfix)
+      description: section.description || 'A customizable section for your theme.',
+      previewImage: section.previewImage || '/Product-Image/ComingSoon.png',
+      filename: `${section.name}.liquid`,
+      liquidCode: section.liquidCode, // Für später, falls benötigt
+      editorName: section.editorName, // Für Editor-Installation
+    }));
 
-    for (const template of templates) {
-      try {
-        const settings = template.settings ? JSON.parse(template.settings) : {};
-        
-        // Bundle Template: Extrahiere Sections aus sectionFiles
-        if (settings.sectionFiles && Array.isArray(settings.sectionFiles)) {
-          for (const sectionFile of settings.sectionFiles) {
-            const sectionId = sectionFile.replace('.liquid', '');
-            
-            // Überspringe wenn bereits vorhanden
-            if (sectionsMap.has(sectionId)) continue;
-            
-            // Lese Liquid-Datei
-            const liquidPath = path.join(templatesDir, sectionFile);
-            if (fs.existsSync(liquidPath)) {
-              try {
-                const liquidCode = fs.readFileSync(liquidPath, 'utf-8');
-                const name = extractSectionNameFromLiquid(liquidCode);
-                const description = extractSectionDescriptionFromLiquid(liquidCode);
-                
-                sectionsMap.set(sectionId, {
-                  id: sectionId,
-                  name: name,
-                  description: description,
-                  previewImage: template.previewImage || '/Product-Image/ComingSoon.png',
-                  filename: sectionFile
-                });
-              } catch (error) {
-                console.error(`Error reading section file ${sectionFile}:`, error);
-              }
-            }
-          }
-        }
-        
-        // Einzelne Section: Verwende liquidCode
-        if (template.liquidCode) {
-          try {
-            const name = extractSectionNameFromLiquid(template.liquidCode);
-            const description = extractSectionDescriptionFromLiquid(template.liquidCode);
-            const sectionId = template.id;
-            
-            if (!sectionsMap.has(sectionId)) {
-              sectionsMap.set(sectionId, {
-                id: sectionId,
-                name: name,
-                description: description,
-                previewImage: template.previewImage || '/Product-Image/ComingSoon.png',
-                filename: template.name.toLowerCase().replace(/[^a-z0-9]+/g, '-') + '.liquid'
-              });
-            }
-          } catch (error) {
-            console.error(`Error processing template ${template.id}:`, error);
-          }
-        }
-      } catch (error) {
-        console.error(`Error processing template ${template.id}:`, error);
-        // Weiter mit nächstem Template
-      }
-    }
-
-    // Konvertiere Map zu Array
-    const sections = Array.from(sectionsMap.values());
-
-    return { sections };
+    console.log(`[Theme Sections Loader] Returning ${formattedSections.length} formatted sections`);
+    return { sections: formattedSections };
   } catch (error) {
     console.error('Error in theme-sections loader:', error);
     // Fallback: Leeres Array zurückgeben
@@ -134,113 +52,34 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   }
 };
 
-// Fallback Sections (falls keine in DB gefunden)
-const fallbackSections: Array<{
+// Section Type Definition
+type SectionType = {
   id: string;
   name: string;
   description: string;
   previewImage: string;
   filename: string;
-}> = [
-  {
-    id: '1',
-    name: 'Frequently Asked Questions (FAQ)',
-    description: 'Provide clear answers to common questions, making it easier for users to find the information they need.',
-    previewImage: '/Product-Image/ComingSoon.png',
-    filename: '5-faq.liquid',
-  },
-  {
-    id: '2',
-    name: 'Featured Products Carousel',
-    description: 'Create a Featured Products Carousel by handpicking the ones you want to promote and place it on any page.',
-    previewImage: '/Product-Image/ComingSoon.png',
-    filename: 'featured-products-carousel.liquid',
-  },
-  {
-    id: '3',
-    name: 'Collection Products Carousel',
-    description: 'Feature products from a collection in a highly customizable carousel. Place it on homepage or any page.',
-    previewImage: '/Product-Image/ComingSoon.png',
-    filename: 'collection-products-carousel.liquid',
-  },
-  {
-    id: '4',
-    name: 'Image & Text - Simple',
-    description: 'Showcase specific content along eye-catching images. Highlight offers or product benefits using Image & Text sections.',
-    previewImage: '/Product-Image/ComingSoon.png',
-    filename: '4-text-image.liquid',
-  },
-  {
-    id: '5',
-    name: 'Collection Banners',
-    description: 'Promote your popular collections with attractive banners and guide customers through your store.',
-    previewImage: '/Product-Image/ComingSoon.png',
-    filename: 'collection-banners.liquid',
-  },
-  {
-    id: '6',
-    name: 'Image & Text - Overlap',
-    description: 'Make your content stand out with overlapping images and text. Highlight promotions, product features, or brand stories.',
-    previewImage: '/Product-Image/ComingSoon.png',
-    filename: 'image-text-overlap.liquid',
-  },
-  {
-    id: '7',
-    name: 'Product Bundles & Quantity Tiers',
-    description: 'Create bundle offers and volume discounts that encourage customers to buy more. Perfect for Black Friday deals.',
-    previewImage: '/Product-Image/ComingSoon.png',
-    filename: 'product-bundles.liquid',
-  },
-  {
-    id: '8',
-    name: 'Two Images & Text',
-    description: 'Showcase content with a balanced layout of two images and text. Ideal for highlighting product features, sales, or brand stories.',
-    previewImage: '/Product-Image/ComingSoon.png',
-    filename: 'two-images-text.liquid',
-  },
-  {
-    id: '9',
-    name: 'Collection Circles',
-    description: 'Display your collections in a stylish circular layout. A perfect way to guide customers through categories, especially on mobile.',
-    previewImage: '/Product-Image/ComingSoon.png',
-    filename: 'collection-circles.liquid',
-  },
-  {
-    id: '10',
-    name: 'Media Gallery',
-    description: 'Showcase images in a beautiful gallery layout. Perfect for displaying product photos, brand visuals, or customer highlights.',
-    previewImage: '/Product-Image/ComingSoon.png',
-    filename: 'media-gallery.liquid',
-  },
-  {
-    id: '11',
-    name: 'Flash Sale Countdown',
-    description: 'Create urgency and boost sales with a countdown timer. Highlight limited-time offers and encourage quick purchases.',
-    previewImage: '/Product-Image/ComingSoon.png',
-    filename: 'flash-sale-countdown.liquid',
-  },
-  {
-    id: '12',
-    name: 'Countdown Timer Banner',
-    description: 'Grab attention with a countdown timer over a custom background. Highlight flash sales, special events, or limited-time offers.',
-    previewImage: '/Product-Image/ComingSoon.png',
-    filename: 'countdown-timer-banner.liquid',
-  },
-];
+  liquidCode?: string;
+  editorName?: string;
+};
 
 export default function ThemeSections() {
   const loaderData = useLoaderData<typeof loader>();
   const [showPremiumView, setShowPremiumView] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [selectedSection, setSelectedSection] = useState<typeof fallbackSections[0] | null>(null);
+  const [selectedSection, setSelectedSection] = useState<SectionType | null>(null);
   const [activeCarouselIndex, setActiveCarouselIndex] = useState(0);
   
-  // Verwende Sections aus DB oder Fallback
+  // Verwende Sections aus DB
   const sections = loaderData?.sections || [];
-  const themeSections = sections && sections.length > 0 ? sections : fallbackSections;
+  const themeSections = sections;
+  
+  // Debug: Log sections
+  console.log('[Theme Sections Component] Loaded sections:', sections.length);
+  console.log('[Theme Sections Component] Section names:', sections.map(s => s.name));
 
   // Handler für "View section" Button
-  const handleViewSection = (section: typeof fallbackSections[0]) => {
+  const handleViewSection = (section: SectionType) => {
     setSelectedSection(section);
     setActiveCarouselIndex(0);
     setIsModalOpen(true);
@@ -262,7 +101,7 @@ export default function ThemeSections() {
   };
 
   // Platzhalter für Carousel-Bilder (später dynamisch)
-  const getCarouselImages = (section: typeof fallbackSections[0]) => {
+  const getCarouselImages = (section: SectionType) => {
     // Erstmal 5 Platzhalter-Bilder zurückgeben
     return [
       section.previewImage,

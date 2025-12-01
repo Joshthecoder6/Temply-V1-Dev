@@ -1,19 +1,42 @@
 import type { LoaderFunctionArgs } from "react-router";
 import { Page, Text, Card, BlockStack, Button, InlineStack, Grid } from "@shopify/polaris";
 import { authenticate } from "../shopify.server";
-import { useState } from "react";
-import { useLoaderData } from "react-router";
+import { useState, useEffect } from "react";
+import { useLoaderData, Form } from "react-router";
 import prisma from "../db.server";
 import { useMantle } from "../components/MantleAppProvider";
-import { MANTLE_PLAN_IDS } from "../lib/mantle.server";
-import { identifyCustomer } from "../lib/mantle.server";
+import { MANTLE_PLAN_IDS, getPlans, identifyCustomer } from "../lib/mantle.server";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { session } = await authenticate.admin(request);
   const { shop } = session;
 
+  // Identify customer to get API token for fetching plans
+  const customer = await identifyCustomer(shop, {
+    email: `${shop}@shopify.com`,
+    name: shop,
+    myshopifyDomain: shop,
+    metadata: { shop, source: 'pricing_page_loader' }
+  });
+
+  // Fetch available plans to log them
+  console.log('=== PRICING PAGE LOADER: Fetching available Mantle plans ===');
+  const plans = await getPlans(customer.customerApiToken);
+
+  console.log('=== AVAILABLE MANTLE PLANS ===');
+  console.log('Total plans:', plans.length);
+  plans.forEach((plan: any) => {
+    console.log(`  - ${plan.name}`);
+    console.log(`    ID: ${plan.id}`);
+    console.log(`    Public: ${plan.public}`);
+    console.log(`    Active: ${plan.active}`);
+    console.log('---');
+  });
+  console.log('=== END PLANS LIST ===');
+
   return {
     planIds: MANTLE_PLAN_IDS,
+    availablePlans: plans,
   };
 };
 
@@ -22,37 +45,52 @@ export default function PricingPage() {
 }
 
 function PricingContent() {
-  const { planIds } = useLoaderData<typeof loader>();
-  const { subscribe, customer } = useMantle();
+  const { planIds, availablePlans } = useLoaderData<typeof loader>();
+  const { subscribe, customer, plans } = useMantle();
   const [yearlyPricing, setYearlyPricing] = useState(false);
+
+  // Log plans from useMantle hook on mount
+  useEffect(() => {
+    console.log('=== PLANS FROM useMantle() HOOK ===');
+    console.log('Total plans from hook:', plans?.length || 0);
+    console.log('Plans from customer.plans:', customer?.plans?.length || 0);
+
+    // Log from customer.plans (this is where Mantle actually provides plans)
+    if (customer?.plans && customer.plans.length > 0) {
+      console.log('=== PLANS FROM customer.plans ===');
+      customer.plans.forEach((plan: any) => {
+        console.log(`  - ${plan.name}`);
+        console.log(`    ID: ${plan.id}`);
+        console.log(`    Amount: ${plan.amount} ${plan.currency}`);
+        console.log(`    Interval: ${plan.interval}`);
+        console.log(`    Public: ${plan.public}`);
+        console.log(`    Active: ${plan.active}`);
+        console.log('---');
+      });
+    }
+
+    // Also log from plans if it exists
+    if (plans && plans.length > 0) {
+      console.log('=== PLANS FROM plans property ===');
+      plans.forEach((plan: any) => {
+        console.log(`  - ${plan.name}`);
+        console.log(`    ID: ${plan.id}`);
+        console.log(`    Public: ${plan.public}`);
+        console.log(`    Active: ${plan.active}`);
+        console.log('---');
+      });
+    } else if (!customer?.plans || customer.plans.length === 0) {
+      console.log('No plans available from useMantle hook or customer');
+    }
+    console.log('=== END HOOK PLANS LIST ===');
+  }, [plans, customer]);
 
   const isStarterActive = customer?.subscription?.plan?.id === planIds.BEGINNER;
   const isGrowthActive = customer?.subscription?.plan?.id === planIds.GROWTH;
 
   // Debug: Test if useMantle works
-  console.log("DEBUG: useMantle result:", { subscribe: typeof subscribe, customer });
+  console.log("DEBUG: useMantle result:", { subscribe: typeof subscribe, customer, plansCount: plans?.length });
 
-  // Handle subscription with proper parameters
-  const handleSubscribe = async (planId: string, discount?: string) => {
-    console.log("DEBUG: handleSubscribe STARTED with planId:", planId);
-
-    try {
-      console.log("DEBUG: handleSubscribe called with:", { planId, discount, customerId: customer?.id });
-
-      // Try with just planId first (let Mantle handle customer and returnUrl automatically)
-      console.log("DEBUG: About to call subscribe with:", { planId });
-      await subscribe({
-        planId
-      });
-      console.log("DEBUG: subscribe call completed successfully");
-    } catch (error) {
-      console.error("Subscription error:", error);
-      console.error("Error details:", {
-        message: error instanceof Error ? error.message : String(error),
-        stack: error instanceof Error ? error.stack : undefined
-      });
-    }
-  };
 
   return (
     <Page>
@@ -295,18 +333,19 @@ function PricingContent() {
                   </div>
 
                   {/* CTA Button */}
-                  <Button
-                    variant="primary"
-                    size="large"
-                    fullWidth
-                    onClick={() => {
-                      console.log("DEBUG: Starter button clicked, calling handleSubscribe");
-                      handleSubscribe(planIds.BEGINNER);
-                    }}
-                    disabled={isStarterActive}
-                  >
-                    {isStarterActive ? "Current Plan" : "Try for free for 7 days"}
-                  </Button>
+                  <Form action="/app/api/subscribe" method="post">
+                    <input type="hidden" name="plan" value="beginner" />
+                    <input type="hidden" name="source" value="pricing" />
+                    <Button
+                      variant="primary"
+                      size="large"
+                      fullWidth
+                      submit
+                      disabled={isStarterActive}
+                    >
+                      {isStarterActive ? "Current Plan" : "Try for free for 7 days"}
+                    </Button>
+                  </Form>
                 </div>
               </div>
             </Grid.Cell>
@@ -513,18 +552,19 @@ function PricingContent() {
                   </div>
 
                   {/* CTA Button */}
-                  <Button
-                    variant="primary"
-                    size="large"
-                    fullWidth
-                    onClick={() => {
-                      console.log("DEBUG: Growth button clicked, calling handleSubscribe");
-                      handleSubscribe(planIds.GROWTH);
-                    }}
-                    disabled={isGrowthActive}
-                  >
-                    {isGrowthActive ? "Current Plan" : "Try for free for 14 days"}
-                  </Button>
+                  <Form action="/app/api/subscribe" method="post">
+                    <input type="hidden" name="plan" value="growth" />
+                    <input type="hidden" name="source" value="pricing" />
+                    <Button
+                      variant="primary"
+                      size="large"
+                      fullWidth
+                      submit
+                      disabled={isGrowthActive}
+                    >
+                      {isGrowthActive ? "Current Plan" : "Try for free for 14 days"}
+                    </Button>
+                  </Form>
                 </div>
               </div>
             </Grid.Cell>
