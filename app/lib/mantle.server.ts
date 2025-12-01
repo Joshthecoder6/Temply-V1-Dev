@@ -41,6 +41,8 @@ interface MantleSubscription {
   id: string;
   confirmationUrl?: string;
   checkout_url?: string; // Legacy support
+  status?: string;
+  plan?: MantlePlan;
 }
 
 /**
