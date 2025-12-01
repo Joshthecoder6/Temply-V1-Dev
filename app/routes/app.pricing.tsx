@@ -2,7 +2,7 @@ import type { LoaderFunctionArgs } from "react-router";
 import { Page, Text, Card, BlockStack, Button, InlineStack, Grid } from "@shopify/polaris";
 import { authenticate } from "../shopify.server";
 import { useState, useEffect } from "react";
-import { useLoaderData, Form } from "react-router";
+import { useLoaderData, Form, useFetcher } from "react-router";
 import prisma from "../db.server";
 import { useMantle } from "../components/MantleAppProvider";
 import { MANTLE_PLAN_IDS, getPlans, identifyCustomer } from "../lib/mantle.server";
@@ -48,6 +48,14 @@ function PricingContent() {
   const { planIds, availablePlans } = useLoaderData<typeof loader>();
   const { subscribe, customer, plans } = useMantle();
   const [yearlyPricing, setYearlyPricing] = useState(false);
+  const fetcher = useFetcher<any>();
+
+  useEffect(() => {
+    if (fetcher.data?.confirmationUrl) {
+      // Redirect to confirmation URL in top window
+      window.top!.location.href = fetcher.data.confirmationUrl;
+    }
+  }, [fetcher.data]);
 
   // Log plans from useMantle hook on mount
   useEffect(() => {
@@ -333,7 +341,7 @@ function PricingContent() {
                   </div>
 
                   {/* CTA Button */}
-                  <Form action="/app/api/subscribe" method="post">
+                  <fetcher.Form action="/app/api/subscribe" method="post">
                     <input type="hidden" name="plan" value="beginner" />
                     <input type="hidden" name="source" value="pricing" />
                     <Button
@@ -341,11 +349,12 @@ function PricingContent() {
                       size="large"
                       fullWidth
                       submit
-                      disabled={isStarterActive}
+                      disabled={isStarterActive || fetcher.state !== "idle"}
+                      loading={fetcher.state !== "idle" && fetcher.formData?.get("plan") === "beginner"}
                     >
                       {isStarterActive ? "Current Plan" : "Try for free for 7 days"}
                     </Button>
-                  </Form>
+                  </fetcher.Form>
                 </div>
               </div>
             </Grid.Cell>
@@ -552,7 +561,7 @@ function PricingContent() {
                   </div>
 
                   {/* CTA Button */}
-                  <Form action="/app/api/subscribe" method="post">
+                  <fetcher.Form action="/app/api/subscribe" method="post">
                     <input type="hidden" name="plan" value="growth" />
                     <input type="hidden" name="source" value="pricing" />
                     <Button
@@ -560,11 +569,12 @@ function PricingContent() {
                       size="large"
                       fullWidth
                       submit
-                      disabled={isGrowthActive}
+                      disabled={isGrowthActive || fetcher.state !== "idle"}
+                      loading={fetcher.state !== "idle" && fetcher.formData?.get("plan") === "growth"}
                     >
                       {isGrowthActive ? "Current Plan" : "Try for free for 14 days"}
                     </Button>
-                  </Form>
+                  </fetcher.Form>
                 </div>
               </div>
             </Grid.Cell>

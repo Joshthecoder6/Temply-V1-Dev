@@ -5,7 +5,7 @@ import { identifyCustomer, createSubscriptionCheckout, MANTLE_PLAN_IDS } from ".
 
 export const action = async ({ request }: ActionFunctionArgs) => {
   try {
-    const { session, redirect } = await authenticate.admin(request);
+    const { session } = await authenticate.admin(request);
 
     console.log('Subscribe action - Session:', {
       shop: session?.shop,
@@ -104,8 +104,8 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
     console.log('Subscribe action - Subscription created successfully, redirecting to:', confirmationUrl);
 
-    // Redirect to Mantle confirmation page using App Bridge redirect
-    return redirect(confirmationUrl);
+    // Return confirmation URL for client-side redirect
+    return Response.json({ confirmationUrl });
   } catch (error) {
     console.error("Error creating Mantle subscription:", {
       error: error instanceof Error ? error.message : String(error),
