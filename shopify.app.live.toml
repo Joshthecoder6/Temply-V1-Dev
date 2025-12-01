@@ -3,6 +3,7 @@ client_id = "e268d7c909c0af07b95575bebbd01dc8"
 name = "Temply Live"
 application_url = "https://temply-live-882b514b992d.herokuapp.com"
 embedded = true
+preferences_url = "https://temply-live-882b514b992d.herokuapp.com/app/settings"
 
 [build]
 automatically_update_urls_on_dev = true

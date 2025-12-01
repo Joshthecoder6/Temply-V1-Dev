@@ -434,6 +434,59 @@ export async function verifyMantleWebhook(request: Request, secret: string): Pro
   return digest === signature;
 }
 
+/**
+ * Get active subscription for a customer
+ * @param customerApiToken - The customer's API token
+ */
+export async function getSubscription(customerApiToken: string): Promise<MantleSubscription | null> {
+  try {
+    const endpoint = `${MANTLE_API_BASE_URL}/subscriptions`;
+    const response = await fetch(endpoint, {
+      method: 'GET',
+      headers: getMantleCustomerHeaders(customerApiToken),
+    });
+
+    if (!response.ok) {
+      console.error('Error fetching subscription:', await response.text());
+      return null;
+    }
+
+    const data = await response.json();
+    // Mantle returns a list of subscriptions, we want the active one
+    const subscriptions = data.subscriptions || data.data || [];
+    return subscriptions.find((sub: any) => sub.status === 'active') || null;
+  } catch (error) {
+    console.error('Error fetching subscription:', error);
+    return null;
+  }
+}
+
+/**
+ * Cancel a subscription
+ * @param subscriptionId - The ID of the subscription to cancel
+ * @param customerApiToken - The customer's API token
+ */
+export async function cancelSubscription(subscriptionId: string, customerApiToken: string): Promise<boolean> {
+  try {
+    const endpoint = `${MANTLE_API_BASE_URL}/subscriptions/${subscriptionId}`;
+    const response = await fetch(endpoint, {
+      method: 'DELETE',
+      headers: getMantleCustomerHeaders(customerApiToken),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Error cancelling subscription:', errorText);
+      throw new Error(`Failed to cancel subscription: ${errorText}`);
+    }
+
+    return true;
+  } catch (error) {
+    console.error('Error cancelling subscription:', error);
+    throw error;
+  }
+}
+
 
 
 

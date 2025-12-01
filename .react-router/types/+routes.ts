@@ -43,6 +43,9 @@ type Pages = {
   "/app": {
     params: {};
   };
+  "/app/api/subscription/cancel": {
+    params: {};
+  };
   "/app/api/ai-chat-delete/:id": {
     params: {
       "id": string;
@@ -101,6 +104,9 @@ type Pages = {
   "/app/my-pages": {
     params: {};
   };
+  "/app/settings": {
+    params: {};
+  };
   "/app/funnels": {
     params: {};
   };
@@ -118,7 +124,7 @@ type Pages = {
 type RouteFiles = {
   "root.tsx": {
     id: "root";
-    page: "/" | "/webhooks/customers/data_request" | "/webhooks/app/scopes_update" | "/webhooks/customers/redact" | "/webhooks/app/uninstalled" | "/webhooks/shop/redact" | "/api/mantle/webhooks" | "/auth/login" | "/auth/*" | "/app" | "/app/api/ai-chat-delete/:id" | "/app/api/ai-sections/apply" | "/app/api/ai-chat-load/:id" | "/app/api/ai-sections/list" | "/app/api/ai-sections/save" | "/app/api/ai-chat-history" | "/app/api/activate-embed" | "/app/register-webhooks" | "/app/api/ai-chat-save" | "/app/api/check-embed" | "/app/theme-sections" | "/app/api/subscribe" | "/app/features-vote" | "/app/ai-generator" | "/app/api/ai-chat" | "/app/onboarding" | "/app/debug-db" | "/app/my-pages" | "/app/funnels" | "/app/pricing" | "/app/pages" | "/app/help";
+    page: "/" | "/webhooks/customers/data_request" | "/webhooks/app/scopes_update" | "/webhooks/customers/redact" | "/webhooks/app/uninstalled" | "/webhooks/shop/redact" | "/api/mantle/webhooks" | "/auth/login" | "/auth/*" | "/app" | "/app/api/subscription/cancel" | "/app/api/ai-chat-delete/:id" | "/app/api/ai-sections/apply" | "/app/api/ai-chat-load/:id" | "/app/api/ai-sections/list" | "/app/api/ai-sections/save" | "/app/api/ai-chat-history" | "/app/api/activate-embed" | "/app/register-webhooks" | "/app/api/ai-chat-save" | "/app/api/check-embed" | "/app/theme-sections" | "/app/api/subscribe" | "/app/features-vote" | "/app/ai-generator" | "/app/api/ai-chat" | "/app/onboarding" | "/app/debug-db" | "/app/my-pages" | "/app/settings" | "/app/funnels" | "/app/pricing" | "/app/pages" | "/app/help";
   };
   "routes/webhooks.customers.data_request.tsx": {
     id: "routes/webhooks.customers.data_request";
@@ -158,7 +164,11 @@ type RouteFiles = {
   };
   "routes/app.tsx": {
     id: "routes/app";
-    page: "/app" | "/app/api/ai-chat-delete/:id" | "/app/api/ai-sections/apply" | "/app/api/ai-chat-load/:id" | "/app/api/ai-sections/list" | "/app/api/ai-sections/save" | "/app/api/ai-chat-history" | "/app/api/activate-embed" | "/app/register-webhooks" | "/app/api/ai-chat-save" | "/app/api/check-embed" | "/app/theme-sections" | "/app/api/subscribe" | "/app/features-vote" | "/app/ai-generator" | "/app/api/ai-chat" | "/app/onboarding" | "/app/debug-db" | "/app/my-pages" | "/app/funnels" | "/app/pricing" | "/app/pages" | "/app/help";
+    page: "/app" | "/app/api/subscription/cancel" | "/app/api/ai-chat-delete/:id" | "/app/api/ai-sections/apply" | "/app/api/ai-chat-load/:id" | "/app/api/ai-sections/list" | "/app/api/ai-sections/save" | "/app/api/ai-chat-history" | "/app/api/activate-embed" | "/app/register-webhooks" | "/app/api/ai-chat-save" | "/app/api/check-embed" | "/app/theme-sections" | "/app/api/subscribe" | "/app/features-vote" | "/app/ai-generator" | "/app/api/ai-chat" | "/app/onboarding" | "/app/debug-db" | "/app/my-pages" | "/app/settings" | "/app/funnels" | "/app/pricing" | "/app/pages" | "/app/help";
+  };
+  "routes/app.api.subscription.cancel.tsx": {
+    id: "routes/app.api.subscription.cancel";
+    page: "/app/api/subscription/cancel";
   };
   "routes/app.api.ai-chat-delete.$id.tsx": {
     id: "routes/app.api.ai-chat-delete.$id";
@@ -232,6 +242,10 @@ type RouteFiles = {
     id: "routes/app.my-pages";
     page: "/app/my-pages";
   };
+  "routes/app.settings.tsx": {
+    id: "routes/app.settings";
+    page: "/app/settings";
+  };
   "routes/app.funnels.tsx": {
     id: "routes/app.funnels";
     page: "/app/funnels";
@@ -266,6 +280,7 @@ type RouteModules = {
   "routes/_index": typeof import("./app/routes/_index/route.tsx");
   "routes/auth.$": typeof import("./app/routes/auth.$.tsx");
   "routes/app": typeof import("./app/routes/app.tsx");
+  "routes/app.api.subscription.cancel": typeof import("./app/routes/app.api.subscription.cancel.tsx");
   "routes/app.api.ai-chat-delete.$id": typeof import("./app/routes/app.api.ai-chat-delete.$id.tsx");
   "routes/app.api.ai-sections.apply": typeof import("./app/routes/app.api.ai-sections.apply.tsx");
   "routes/app.api.ai-chat-load.$id": typeof import("./app/routes/app.api.ai-chat-load.$id.tsx");
@@ -284,6 +299,7 @@ type RouteModules = {
   "routes/app.onboarding": typeof import("./app/routes/app.onboarding.tsx");
   "routes/app.debug-db": typeof import("./app/routes/app.debug-db.tsx");
   "routes/app.my-pages": typeof import("./app/routes/app.my-pages.tsx");
+  "routes/app.settings": typeof import("./app/routes/app.settings.tsx");
   "routes/app.funnels": typeof import("./app/routes/app.funnels.tsx");
   "routes/app.pricing": typeof import("./app/routes/app.pricing.tsx");
   "routes/app._index": typeof import("./app/routes/app._index.tsx");

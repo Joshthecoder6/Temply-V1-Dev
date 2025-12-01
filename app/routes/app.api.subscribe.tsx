@@ -100,8 +100,8 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
     // Determine return URL based on source
     const returnUrl = source === "onboarding"
-      ? `${appUrl}/app/onboarding?success=true`
-      : `${appUrl}/app/pricing?success=true`;
+      ? `${appUrl}/app/onboarding?success=true&shop=${session.shop}`
+      : `${appUrl}/app/pricing?success=true&shop=${session.shop}`;
 
     console.log('Subscribe action - Creating subscription checkout:', {
       planName: mantlePlanName,
