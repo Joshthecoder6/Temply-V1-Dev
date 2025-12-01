@@ -1,0 +1,42 @@
+# Live App Configuration
+client_id = "e268d7c909c0af07b95575bebbd01dc8"
+name = "Temply Live"
+application_url = "https://temply-live-882b514b992d.herokuapp.com"
+embedded = true
+
+[build]
+automatically_update_urls_on_dev = true
+
+[webhooks]
+api_version = "2025-10"
+
+  [[webhooks.subscriptions]]
+  topics = [ "app/uninstalled" ]
+  uri = "/webhooks/app/uninstalled"
+
+  [[webhooks.subscriptions]]
+  topics = [ "app/scopes_update" ]
+  uri = "/webhooks/app/scopes_update"
+
+  [[webhooks.subscriptions]]
+  compliance_topics = ["customers/data_request"]
+  uri = "/webhooks/customers/data_request"
+
+  [[webhooks.subscriptions]]
+  compliance_topics = ["customers/redact"]
+  uri = "/webhooks/customers/redact"
+
+  [[webhooks.subscriptions]]
+  compliance_topics = ["shop/redact"]
+  uri = "/webhooks/shop/redact"
+
+[access_scopes]
+scopes = "write_products,read_themes,write_themes,read_content,write_content"
+
+[auth]
+redirect_urls = [ 
+  "https://temply-live-882b514b992d.herokuapp.com/api/auth",
+  "https://temply-live-882b514b992d.herokuapp.com/auth/callback",
+  "https://temply-live-882b514b992d.herokuapp.com/auth/shopify/callback",
+  "https://temply-live-882b514b992d.herokuapp.com/api/auth/callback"
+]
