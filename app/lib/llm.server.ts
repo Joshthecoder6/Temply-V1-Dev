@@ -421,24 +421,47 @@ export async function generateSection(
         ...processedMessages,
       ] as any,
       temperature: parseFloat(process.env.XAI_TEMPERATURE || '0.7'),
-      max_tokens: parseInt(process.env.XAI_MAX_TOKENS || '2000'),
+      max_tokens: parseInt(process.env.XAI_MAX_TOKENS || '4000'), // Increased from 2000
       // Note: X.AI doesn't support response_format, so we parse JSON manually
     });
 
     const content = completion.choices[0]?.message?.content || '';
 
+    console.log(`[X.AI] Response length: ${content.length} characters`);
+    console.log(`[X.AI] Finish reason: ${completion.choices[0]?.finish_reason}`);
+
     // Extract JSON from response (X.AI may wrap it in markdown or text)
     try {
-      const jsonMatch = content.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        const section = JSON.parse(jsonMatch[0]) as GeneratedSection;
-        return section;
+      // Try to find JSON block (could be wrapped in ```json or just raw)
+      let jsonString = content;
+
+      // Remove markdown code fences if present
+      const codeBlockMatch = content.match(/```(?:json)?\s*(\{[\s\S]*\})\s*```/);
+      if (codeBlockMatch) {
+        jsonString = codeBlockMatch[1];
       } else {
+        // Try to extract JSON object
+        const jsonMatch = content.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          jsonString = jsonMatch[0];
+        }
+      }
+
+      console.log(`[X.AI] Extracted JSON length: ${jsonString.length} characters`);
+
+      if (!jsonString || jsonString.length === 0) {
+        console.error('[X.AI] No JSON found in response');
         throw new Error('No valid JSON found in X.AI response');
       }
+
+      const section = JSON.parse(jsonString) as GeneratedSection;
+      console.log(`[X.AI] Successfully parsed section: ${section.sectionName}`);
+      return section;
     } catch (parseError) {
-      console.error('Failed to parse X.AI response:', content);
-      throw new Error('Failed to parse section from X.AI response');
+      console.error('[X.AI] Failed to parse response');
+      console.error('[X.AI] Response preview:', content.substring(0, 500));
+      console.error('[X.AI] Parse error:', parseError);
+      throw new Error(`Failed to parse section from X.AI response: ${parseError instanceof Error ? parseError.message : 'Unknown error'}`);
     }
   } catch (error) {
     console.error('X.AI API error:', error);
