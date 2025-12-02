@@ -12,22 +12,31 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         const { messages } = body as { messages: ChatMessage[] };
 
         if (!messages || !Array.isArray(messages)) {
-            return { error: "Invalid messages format", status: 400 };
+            return new Response(JSON.stringify({ error: "Invalid messages format" }), {
+                status: 400,
+                headers: { "Content-Type": "application/json" }
+            });
         }
 
-        // Generate section using OpenAI
+        // Generate section using X.AI
         const section = await generateSection(messages);
 
-        return {
+        return new Response(JSON.stringify({
             success: true,
             section,
             shop,
-        };
+        }), {
+            status: 200,
+            headers: { "Content-Type": "application/json" }
+        });
     } catch (error) {
         console.error("AI Chat error:", error);
-        return {
+        return new Response(JSON.stringify({
             error: error instanceof Error ? error.message : "Failed to generate section",
+        }), {
             status: 500,
-        };
+            headers: { "Content-Type": "application/json" }
+        });
     }
 };
+
