@@ -129,7 +129,7 @@ function PricingContent() {
 
     setIsCancelling(true);
     try {
-      await cancel();
+      await cancel(customer.subscription.id);
       // Mantle will handle the update automatically
     } catch (error) {
       console.error('Failed to cancel subscription:', error);
