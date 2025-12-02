@@ -17,7 +17,8 @@ import { ChevronLeftIcon, ChevronRightIcon, ExternalIcon } from "@shopify/polari
 import prisma from "../db.server";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
-  await authenticate.admin(request);
+  const { session } = await authenticate.admin(request);
+  const shop = session.shop;
 
   try {
     // Lade alle aktiven Sections aus der neuen Section-Tabelle
@@ -30,21 +31,48 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       }
     });
 
-    console.log(`[Theme Sections Loader] Found ${sections.length} sections in database`);
+    // Lade AI-generierte Sections für diesen Shop (nur approved ones)
+    const aiSections = await prisma.aISection.findMany({
+      where: {
+        shop: shop,
+        status: 'applied' // Nur angewandte AI-Sections anzeigen
+      },
+      orderBy: {
+        createdAt: 'desc'
+      }
+    });
 
-    // Konvertiere Sections in das erwartete Format
+    console.log(`[Theme Sections Loader] Found ${sections.length} sections and ${aiSections.length} AI sections in database`);
+
+    // Konvertiere normale Sections in das erwartete Format
     const formattedSections = sections.map((section) => ({
       id: section.id,
-      name: section.displayName, // Verwende displayName (ohne "tp-" Präfix)
+      name: section.displayName,
       description: section.description || 'A customizable section for your theme.',
       previewImage: section.previewImage || '/Product-Image/ComingSoon.png',
       filename: `${section.name}.liquid`,
-      liquidCode: section.liquidCode, // Für später, falls benötigt
-      editorName: section.editorName, // Für Editor-Installation
+      liquidCode: section.liquidCode,
+      editorName: section.editorName,
+      isAI: false
     }));
 
-    console.log(`[Theme Sections Loader] Returning ${formattedSections.length} formatted sections`);
-    return { sections: formattedSections };
+    // Konvertiere AI-Sections in das gleiche Format
+    const formattedAISections = aiSections.map((aiSection) => ({
+      id: aiSection.id,
+      name: aiSection.sectionName,
+      description: `AI-generated ${aiSection.sectionType} section`,
+      previewImage: '/Product-Image/ComingSoon.png', // TODO: Generate preview from AI section
+      filename: `${aiSection.sectionName}.liquid`,
+      liquidCode: aiSection.liquidCode || '',
+      editorName: `TP-AI: ${aiSection.sectionName}`,
+      isAI: true
+    }));
+
+    // Kombiniere beide Listen
+    const allSections = [...formattedSections, ...formattedAISections];
+
+    console.log(`[Theme Sections Loader] Returning ${allSections.length} total sections (${formattedSections.length} normal + ${formattedAISections.length} AI)`);
+    return { sections: allSections };
   } catch (error) {
     console.error('Error in theme-sections loader:', error);
     // Fallback: Leeres Array zurückgeben
@@ -61,6 +89,7 @@ type SectionType = {
   filename: string;
   liquidCode?: string;
   editorName?: string;
+  isAI?: boolean; // Flag for AI-generated sections
 };
 
 export default function ThemeSections() {
@@ -69,11 +98,11 @@ export default function ThemeSections() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedSection, setSelectedSection] = useState<SectionType | null>(null);
   const [activeCarouselIndex, setActiveCarouselIndex] = useState(0);
-  
+
   // Verwende Sections aus DB
   const sections = loaderData?.sections || [];
   const themeSections = sections;
-  
+
   // Debug: Log sections
   console.log('[Theme Sections Component] Loaded sections:', sections.length);
   console.log('[Theme Sections Component] Section names:', sections.map(s => s.name));
@@ -120,8 +149,8 @@ export default function ThemeSections() {
         const modalDialogs = document.querySelectorAll('[role="dialog"]');
         modalDialogs.forEach((dialog: any) => {
           // Prüfe ob es unser Modal ist (enthält unseren Content)
-          const hasOurContent = dialog.querySelector('[style*="f6f6f7"]') || 
-                                dialog.textContent?.includes(selectedSection?.name || '');
+          const hasOurContent = dialog.querySelector('[style*="f6f6f7"]') ||
+            dialog.textContent?.includes(selectedSection?.name || '');
           if (hasOurContent && dialog.style) {
             dialog.style.maxWidth = '1100px';
             dialog.style.width = '1100px';
@@ -133,7 +162,7 @@ export default function ThemeSections() {
         const containers = document.querySelectorAll('[class*="Polaris-Modal"]');
         containers.forEach((container: any) => {
           const hasOurContent = container.querySelector('[style*="f6f6f7"]') ||
-                               container.textContent?.includes(selectedSection?.name || '');
+            container.textContent?.includes(selectedSection?.name || '');
           if (hasOurContent && container.style) {
             const computedStyle = window.getComputedStyle(container);
             if (computedStyle.maxWidth && parseInt(computedStyle.maxWidth) < 1100) {
@@ -147,7 +176,7 @@ export default function ThemeSections() {
 
       // Sofort setzen
       setModalWidth();
-      
+
       // Und nach kurzer Verzögerung nochmal (falls Modal noch nicht vollständig gerendert)
       const timeout = setTimeout(setModalWidth, 100);
       const interval = setInterval(setModalWidth, 200);
@@ -160,7 +189,7 @@ export default function ThemeSections() {
   }, [isModalOpen, selectedSection]);
 
   return (
-    <Page 
+    <Page
       title="Theme Sections"
       primaryAction={
         <Button
@@ -179,8 +208,31 @@ export default function ThemeSections() {
         .black-button-override button:hover {
           background-color: #2a2a2a !important;
         }
+        
+        @keyframes rainbow-rotate {
+          0% {
+            background: linear-gradient(white, white) padding-box, 
+                        linear-gradient(90deg, #ff0080, #ff8c00, #40e0d0, #8a2be2, #ff0080) border-box;
+          }
+          25% {
+            background: linear-gradient(white, white) padding-box, 
+                        linear-gradient(90deg, #ff8c00, #40e0d0, #8a2be2, #ff0080, #ff8c00) border-box;
+          }
+          50% {
+            background: linear-gradient(white, white) padding-box, 
+                        linear-gradient(90deg, #40e0d0, #8a2be2, #ff0080, #ff8c00, #40e0d0) border-box;
+          }
+          75% {
+            background: linear-gradient(white, white) padding-box, 
+                        linear-gradient(90deg, #8a2be2, #ff0080, #ff8c00, #40e0d0, #8a2be2) border-box;
+          }
+          100% {
+            background: linear-gradient(white, white) padding-box, 
+                        linear-gradient(90deg, #ff0080, #ff8c00, #40e0d0, #8a2be2, #ff0080) border-box;
+          }
+        }
       `}</style>
-      
+
       {showPremiumView ? (
         // Premium View: Grid mit Sections
         <div style={{
@@ -201,9 +253,9 @@ export default function ThemeSections() {
           </h1>
 
           {/* Sections Grid */}
-          <div style={{ 
-            display: 'grid', 
-            gridTemplateColumns: 'repeat(3, 1fr)', 
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(3, 1fr)',
             gap: '20px',
             marginBottom: '40px'
           }}>
@@ -213,18 +265,26 @@ export default function ThemeSections() {
                 style={{
                   width: '300.66px',
                   height: '351.89px',
-                  background: 'white',
-                  border: '1px solid #e1e3e5',
+                  border: section.isAI
+                    ? '3px solid transparent'
+                    : '1px solid #e1e3e5',
+                  backgroundImage: section.isAI
+                    ? 'linear-gradient(white, white), linear-gradient(90deg, #ff0080, #ff8c00, #40e0d0, #8a2be2, #ff0080)'
+                    : 'none',
+                  backgroundOrigin: section.isAI ? 'padding-box, border-box' : undefined,
+                  backgroundClip: section.isAI ? 'padding-box, border-box' : undefined,
+                  background: section.isAI ? undefined : 'white',
                   borderRadius: '12px',
                   overflow: 'hidden',
-                  transition: 'box-shadow 0.2s ease',
+                  transition: 'box-shadow 0.2s ease, transform 0.2s ease',
                   display: 'flex',
-                  flexDirection: 'column'
+                  flexDirection: 'column',
+                  animation: section.isAI ? 'rainbow-rotate 3s linear infinite' : 'none'
                 }}
               >
                 {/* Preview Image */}
-                <div style={{ 
-                  width: '100%', 
+                <div style={{
+                  width: '100%',
                   height: '280px',
                   background: '#ffffff',
                   display: 'flex',
@@ -234,8 +294,8 @@ export default function ThemeSections() {
                   overflow: 'hidden'
                 }}>
                   {section.previewImage && (
-                    <img 
-                      src={section.previewImage} 
+                    <img
+                      src={section.previewImage}
                       alt={section.name}
                       style={{
                         maxWidth: '100%',
@@ -244,25 +304,48 @@ export default function ThemeSections() {
                       }}
                     />
                   )}
+                  {/* AI Badge */}
+                  {section.isAI && (
+                    <div style={{
+                      position: 'absolute',
+                      top: '12px',
+                      right: '12px',
+                      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                      color: 'white',
+                      padding: '6px 12px',
+                      borderRadius: '20px',
+                      fontSize: '12px',
+                      fontWeight: 600,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      boxShadow: '0 2px 8px rgba(0,0,0,0.15)'
+                    }}>
+                      <svg width="14" height="14" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M8 0L9.5 5.5L15 7L9.5 8.5L8 14L6.5 8.5L1 7L6.5 5.5L8 0Z" fill="white" stroke="white" strokeWidth="0.5" />
+                      </svg>
+                      AI Generated
+                    </div>
+                  )}
                 </div>
 
                 {/* Content */}
-                <div style={{ 
+                <div style={{
                   padding: '20px',
                   display: 'flex',
                   flexDirection: 'column',
                   flex: 1
                 }}>
-                  <h3 style={{ 
-                    margin: '0 0 12px 0', 
-                    fontSize: '16px', 
+                  <h3 style={{
+                    margin: '0 0 12px 0',
+                    fontSize: '16px',
                     fontWeight: 600,
                     color: '#202223'
                   }}>
                     {section.name}
                   </h3>
-                  
-                  <Text as="p" variant="bodyMd" tone="subdued" style={{ 
+
+                  <Text as="p" variant="bodyMd" tone="subdued" style={{
                     margin: '0 0 16px 0',
                     fontSize: '14px',
                     lineHeight: '1.5',
@@ -273,7 +356,7 @@ export default function ThemeSections() {
 
                   {/* Button - kleiner, linksbündig */}
                   <div style={{ width: 'auto' }}>
-                    <Button 
+                    <Button
                       variant="secondary"
                       onClick={() => handleViewSection(section)}
                     >
@@ -288,100 +371,100 @@ export default function ThemeSections() {
       ) : (
         // Basic View: Aktuelle Ansicht
         <BlockStack gap="500">
-        {/* Introduction Card */}
-        <Card>
-          <InlineStack gap="500" align="start" blockAlign="center">
-            {/* Illustration Image */}
-            <div style={{
-              flexShrink: 0,
-              maxWidth: '400px'
-            }}>
-              <img 
-                src="/theme-sections/picture-firsz.jpg" 
-                alt="Theme Section Illustration"
-                style={{
-                  width: '100%',
-                  height: 'auto',
-                  display: 'block'
-                }}
-              />
-            </div>
+          {/* Introduction Card */}
+          <Card>
+            <InlineStack gap="500" align="start" blockAlign="center">
+              {/* Illustration Image */}
+              <div style={{
+                flexShrink: 0,
+                maxWidth: '400px'
+              }}>
+                <img
+                  src="/theme-sections/picture-firsz.jpg"
+                  alt="Theme Section Illustration"
+                  style={{
+                    width: '100%',
+                    height: 'auto',
+                    display: 'block'
+                  }}
+                />
+              </div>
 
-            {/* Text Content */}
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <BlockStack gap="400">
-                <Text as="h2" variant="headingLg" fontWeight="semibold">
-                  Templys' Theme Section: An introduction
-                </Text>
-                <Text as="p" variant="bodyMd">
-                  All you need to do is edit the section once, and the information automatically updates across every page that uses that section including GemPages & Shopify pages.
-                </Text>
-                <div>
+              {/* Text Content */}
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <BlockStack gap="400">
+                  <Text as="h2" variant="headingLg" fontWeight="semibold">
+                    Templys' Theme Section: An introduction
+                  </Text>
+                  <Text as="p" variant="bodyMd">
+                    All you need to do is edit the section once, and the information automatically updates across every page that uses that section including GemPages & Shopify pages.
+                  </Text>
+                  <div>
+                    <Button variant="secondary">
+                      Learn more
+                    </Button>
+                  </div>
+                </BlockStack>
+              </div>
+            </InlineStack>
+          </Card>
+
+          {/* Video Section */}
+          <Card>
+            <BlockStack gap="500" align="center">
+              {/* Video Thumbnail */}
+              <div style={{
+                width: '100%',
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center'
+              }}>
+                <img
+                  src="/theme-sections/video-mockup.png"
+                  alt="Video Tutorial"
+                  style={{
+                    width: '100%',
+                    maxWidth: '600px',
+                    height: 'auto',
+                    display: 'block'
+                  }}
+                />
+              </div>
+
+              {/* Text Content */}
+              <BlockStack gap="400" align="center">
+                <div style={{ textAlign: 'center', maxWidth: '800px' }}>
+                  <Text as="h2" variant="headingLg" fontWeight="semibold">
+                    Create once, use everywhere with Theme Section
+                  </Text>
+                </div>
+                <div style={{ textAlign: 'center', maxWidth: '800px' }}>
+                  <Text as="p" variant="bodyMd">
+                    Theme Section lets you design a global section that can be used on all your GemPages & Shopify pages. Any changes you make will be automatically updated on all pages that use it.
+                  </Text>
+                </div>
+                <InlineStack gap="300" align="center">
                   <Button variant="secondary">
                     Learn more
                   </Button>
-                </div>
+                  <div className="black-button-override">
+                    <Button variant="primary">
+                      <InlineStack gap="200" align="center" blockAlign="center">
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                          <path d="M8 0L9.5 5.5L15 7L9.5 8.5L8 14L6.5 8.5L1 7L6.5 5.5L8 0Z" fill="white" stroke="white" strokeWidth="0.5" />
+                        </svg>
+                        <span>Upgrade to create Theme Section</span>
+                      </InlineStack>
+                    </Button>
+                  </div>
+                </InlineStack>
               </BlockStack>
-            </div>
-          </InlineStack>
-        </Card>
-
-        {/* Video Section */}
-        <Card>
-          <BlockStack gap="500" align="center">
-            {/* Video Thumbnail */}
-            <div style={{
-              width: '100%',
-              display: 'flex',
-              justifyContent: 'center',
-              alignItems: 'center'
-            }}>
-              <img 
-                src="/theme-sections/video-mockup.png" 
-                alt="Video Tutorial"
-                style={{
-                  width: '100%',
-                  maxWidth: '600px',
-                  height: 'auto',
-                  display: 'block'
-                }}
-              />
-            </div>
-
-            {/* Text Content */}
-            <BlockStack gap="400" align="center">
-              <div style={{ textAlign: 'center', maxWidth: '800px' }}>
-                <Text as="h2" variant="headingLg" fontWeight="semibold">
-                  Create once, use everywhere with Theme Section
-                </Text>
-              </div>
-              <div style={{ textAlign: 'center', maxWidth: '800px' }}>
-                <Text as="p" variant="bodyMd">
-                  Theme Section lets you design a global section that can be used on all your GemPages & Shopify pages. Any changes you make will be automatically updated on all pages that use it.
-                </Text>
-              </div>
-              <InlineStack gap="300" align="center">
-                <Button variant="secondary">
-                  Learn more
-                </Button>
-                <div className="black-button-override">
-                  <Button variant="primary">
-                    <InlineStack gap="200" align="center" blockAlign="center">
-                      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M8 0L9.5 5.5L15 7L9.5 8.5L8 14L6.5 8.5L1 7L6.5 5.5L8 0Z" fill="white" stroke="white" strokeWidth="0.5"/>
-                      </svg>
-                      <span>Upgrade to create Theme Section</span>
-                    </InlineStack>
-                  </Button>
-                </div>
-              </InlineStack>
             </BlockStack>
-          </BlockStack>
-        </Card>
+          </Card>
 
-        {/* Bottom Spacing */}
-        <div style={{ paddingBottom: '60px' }} />
-      </BlockStack>
+          {/* Bottom Spacing */}
+          <div style={{ paddingBottom: '60px' }} />
+        </BlockStack>
       )}
 
       {/* Section Detail Modal */}
@@ -417,7 +500,20 @@ export default function ThemeSections() {
               <Text as="h2" variant="headingLg" fontWeight="semibold">
                 {selectedSection.name}
               </Text>
-              <Badge status="info">New</Badge>
+              {selectedSection.isAI ? (
+                <Badge
+                  tone="magic"
+                  icon={() => (
+                    <svg width="12" height="12" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M8 0L9.5 5.5L15 7L9.5 8.5L8 14L6.5 8.5L1 7L6.5 5.5L8 0Z" fill="currentColor" />
+                    </svg>
+                  )}
+                >
+                  AI Generated
+                </Badge>
+              ) : (
+                <Badge status="info">New</Badge>
+              )}
             </div>
 
             {/* Main Content: Two Columns Layout - Top Section */}
@@ -445,8 +541,8 @@ export default function ThemeSections() {
                     overflow: 'hidden'
                   }}>
                     {selectedSection && (
-                      <img 
-                        src={getCarouselImages(selectedSection)[activeCarouselIndex]} 
+                      <img
+                        src={getCarouselImages(selectedSection)[activeCarouselIndex]}
                         alt={selectedSection.name}
                         style={{
                           maxWidth: '100%',
@@ -472,7 +568,7 @@ export default function ThemeSections() {
                     onClick={handleCarouselPrev}
                     disabled={!selectedSection}
                   />
-                  
+
                   <div style={{
                     display: 'flex',
                     gap: '8px',
@@ -496,8 +592,8 @@ export default function ThemeSections() {
                           justifyContent: 'center'
                         }}
                       >
-                        <img 
-                          src={img} 
+                        <img
+                          src={img}
                           alt={`Preview ${index + 1}`}
                           style={{
                             width: '100%',
@@ -540,12 +636,12 @@ export default function ThemeSections() {
                         </Text>
                         <Badge status="success">Installed</Badge>
                       </InlineStack>
-                      
+
                       <List>
                         <List.Item>
                           <InlineStack gap="200" blockAlign="center">
                             <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                              <path d="M13.5 4.5L6 12L2.5 8.5" stroke="#008060" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                              <path d="M13.5 4.5L6 12L2.5 8.5" stroke="#008060" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                             </svg>
                             <Text as="span" variant="bodyMd">Add answers to common questions</Text>
                           </InlineStack>
@@ -553,7 +649,7 @@ export default function ThemeSections() {
                         <List.Item>
                           <InlineStack gap="200" blockAlign="center">
                             <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                              <path d="M13.5 4.5L6 12L2.5 8.5" stroke="#008060" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                              <path d="M13.5 4.5L6 12L2.5 8.5" stroke="#008060" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                             </svg>
                             <Text as="span" variant="bodyMd">Reduce customer inquiries</Text>
                           </InlineStack>
@@ -561,7 +657,7 @@ export default function ThemeSections() {
                         <List.Item>
                           <InlineStack gap="200" blockAlign="center">
                             <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                              <path d="M13.5 4.5L6 12L2.5 8.5" stroke="#008060" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                              <path d="M13.5 4.5L6 12L2.5 8.5" stroke="#008060" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                             </svg>
                             <Text as="span" variant="bodyMd">Boost buyer confidence</Text>
                           </InlineStack>
@@ -569,7 +665,7 @@ export default function ThemeSections() {
                         <List.Item>
                           <InlineStack gap="200" blockAlign="center">
                             <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                              <path d="M13.5 4.5L6 12L2.5 8.5" stroke="#008060" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                              <path d="M13.5 4.5L6 12L2.5 8.5" stroke="#008060" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                             </svg>
                             <Text as="span" variant="bodyMd">Generate content with AI</Text>
                           </InlineStack>
@@ -642,49 +738,49 @@ export default function ThemeSections() {
               gap: '12px',
               marginTop: '24px'
             }}>
-                {/* Card 4: Check our Help Center */}
-                <Card>
-                  <div style={{
-                    width: '467px',
-                    height: '137.44px',
-                    display: 'flex',
-                    flexDirection: 'column'
-                  }}>
-                    <BlockStack gap="200">
-                      <Text as="h3" variant="headingMd" fontWeight="semibold">
-                        Check our Help Center
-                      </Text>
-                      <Text as="p" variant="bodySm" tone="subdued">
-                        If you need help with setting up the Theme Sections & AI Page Generator app, please check our exhaustive Help Center for details.
-                      </Text>
-                      <Button variant="secondary" icon={ExternalIcon} size="slim">
-                        Get help
-                      </Button>
-                    </BlockStack>
-                  </div>
-                </Card>
+              {/* Card 4: Check our Help Center */}
+              <Card>
+                <div style={{
+                  width: '467px',
+                  height: '137.44px',
+                  display: 'flex',
+                  flexDirection: 'column'
+                }}>
+                  <BlockStack gap="200">
+                    <Text as="h3" variant="headingMd" fontWeight="semibold">
+                      Check our Help Center
+                    </Text>
+                    <Text as="p" variant="bodySm" tone="subdued">
+                      If you need help with setting up the Theme Sections & AI Page Generator app, please check our exhaustive Help Center for details.
+                    </Text>
+                    <Button variant="secondary" icon={ExternalIcon} size="slim">
+                      Get help
+                    </Button>
+                  </BlockStack>
+                </div>
+              </Card>
 
-                {/* Card 5: We're here for you, 24/7 */}
-                <Card>
-                  <div style={{
-                    width: '467px',
-                    height: '137.44px',
-                    display: 'flex',
-                    flexDirection: 'column'
-                  }}>
-                    <BlockStack gap="200">
-                      <Text as="h3" variant="headingMd" fontWeight="semibold">
-                        We're here for you, 24/7
-                      </Text>
-                      <Text as="p" variant="bodySm" tone="subdued">
-                        We understand how powerful Theme Sections & AI Pages is - that's why we are available 24/7 to support you in setting it up.
-                      </Text>
-                      <Button variant="secondary" size="slim">
-                        Contact us
-                      </Button>
-                    </BlockStack>
-                  </div>
-                </Card>
+              {/* Card 5: We're here for you, 24/7 */}
+              <Card>
+                <div style={{
+                  width: '467px',
+                  height: '137.44px',
+                  display: 'flex',
+                  flexDirection: 'column'
+                }}>
+                  <BlockStack gap="200">
+                    <Text as="h3" variant="headingMd" fontWeight="semibold">
+                      We're here for you, 24/7
+                    </Text>
+                    <Text as="p" variant="bodySm" tone="subdued">
+                      We understand how powerful Theme Sections & AI Pages is - that's why we are available 24/7 to support you in setting it up.
+                    </Text>
+                    <Button variant="secondary" size="slim">
+                      Contact us
+                    </Button>
+                  </BlockStack>
+                </div>
+              </Card>
             </div>
           </div>
         </Modal>
