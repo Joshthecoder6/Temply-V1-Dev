@@ -1,8 +1,9 @@
 import OpenAI from 'openai';
 
-// Initialize OpenAI client
+// Initialize X.AI client (OpenAI SDK compatible)
 const openai = new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY || '',
+    apiKey: process.env.XAI_API_KEY || '',
+    baseURL: 'https://api.x.ai/v1',
 });
 
 // System prompt for section generation
@@ -87,7 +88,7 @@ export interface GeneratedSection {
 }
 
 /**
- * Generate a section using OpenAI streaming
+ * Generate a section using X.AI Grok streaming
  */
 export async function generateSectionStream(
     messages: ChatMessage[],
@@ -97,13 +98,13 @@ export async function generateSectionStream(
 ) {
     try {
         const stream = await openai.chat.completions.create({
-            model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
+            model: process.env.XAI_MODEL || 'grok-beta',
             messages: [
                 { role: 'system', content: SYSTEM_PROMPT },
                 ...messages,
             ],
-            temperature: parseFloat(process.env.OPENAI_TEMPERATURE || '0.7'),
-            max_tokens: parseInt(process.env.OPENAI_MAX_TOKENS || '2000'),
+            temperature: parseFloat(process.env.XAI_TEMPERATURE || '0.7'),
+            max_tokens: parseInt(process.env.XAI_MAX_TOKENS || '2000'),
             stream: true,
         });
 
@@ -131,7 +132,7 @@ export async function generateSectionStream(
             onError(new Error('Failed to parse section from LLM response'));
         }
     } catch (error) {
-        console.error('OpenAI API error:', error);
+        console.error('X.AI API error:', error);
         onError(error as Error);
     }
 }
@@ -235,13 +236,13 @@ export async function generateSection(
         }));
 
         const completion = await openai.chat.completions.create({
-            model: hasImages ? 'gpt-4o' : (process.env.OPENAI_MODEL || 'gpt-4o-mini'),
+            model: hasImages ? 'grok-vision-beta' : (process.env.XAI_MODEL || 'grok-beta'),
             messages: [
                 { role: 'system', content: SYSTEM_PROMPT },
                 ...processedMessages,
             ] as any,
-            temperature: parseFloat(process.env.OPENAI_TEMPERATURE || '0.7'),
-            max_tokens: parseInt(process.env.OPENAI_MAX_TOKENS || '2000'),
+            temperature: parseFloat(process.env.XAI_TEMPERATURE || '0.7'),
+            max_tokens: parseInt(process.env.XAI_MAX_TOKENS || '2000'),
             response_format: { type: 'json_object' },
         });
 
@@ -250,7 +251,7 @@ export async function generateSection(
 
         return section;
     } catch (error) {
-        console.error('OpenAI API error:', error);
+        console.error('X.AI API error:', error);
         throw error;
     }
 }
@@ -258,12 +259,12 @@ export async function generateSection(
 /**
  * Validate API key
  */
-export async function validateOpenAIKey(): Promise<boolean> {
+export async function validateXAIKey(): Promise<boolean> {
     try {
         await openai.models.list();
         return true;
     } catch (error) {
-        console.error('OpenAI API key validation failed:', error);
+        console.error('X.AI API key validation failed:', error);
         return false;
     }
 }

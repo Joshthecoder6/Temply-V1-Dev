@@ -1,25 +1,23 @@
 # Temply AI - Environment Configuration
 
-This document describes the environment variables and configuration for **Temply AI**, the intelligent section generator.
+This document describes the environment variables and configuration for **Temply AI**, the intelligent section generator powered by **X.AI Grok**.
 
 ## Environment Variables
 
 Add these to your `.env` file:
 
 ```bash
-# OpenAI Configuration
-OPENAI_API_KEY=your-openai-api-key-here
-OPENAI_MODEL=gpt-4o-mini
-OPENAI_TEMPERATURE=0.7
-OPENAI_MAX_TOKENS=2000
+# X.AI Configuration
+XAI_API_KEY=your-xai-api-key-here
+XAI_MODEL=grok-beta
+XAI_TEMPERATURE=0.7
+XAI_MAX_TOKENS=2000
 ```
 
 ## Model Options
 
-- **gpt-4o-mini** (recommended for text-only, cost-effective)
-- **gpt-4o** (automatically used when images are attached, more powerful)
-- **gpt-4-turbo** (fast and powerful)
-- **gpt-3.5-turbo** (cheapest, less powerful)
+- **grok-beta** (recommended for text-only, powerful and cost-effective)
+- **grok-vision-beta** (automatically used when images are attached, supports vision capabilities)
 
 ## Base Prompt Configuration
 
@@ -29,7 +27,7 @@ Temply AI uses a comprehensive base prompt that:
 - Emphasizes modern design aesthetics and best practices
 - Defines security boundaries and database access restrictions
 
-The base prompt is automatically included with every request and can be customized in `app/lib/llm.server.ts`.
+The base prompt is automatically included with every request and can be customized in `app/lib/llm.server.ts` (lines 8-64, variable `SYSTEM_PROMPT`).
 
 ## Database Security
 
@@ -47,9 +45,9 @@ The base prompt is automatically included with every request and can be customiz
 Temply AI supports image attachments to provide visual reference:
 - **Supported formats**: PNG, JPG, GIF, WebP, and other image formats
 - **Maximum file size**: 5MB per image
-- **Storage**: Files are converted to base64 data URLs and sent directly to OpenAI Vision API
+- **Storage**: Files are converted to base64 data URLs and sent directly to X.AI Grok Vision API
 - **Privacy**: Images are not permanently stored, only included in the API request
-- **Model**: When images are attached, automatically switches to `gpt-4o` for vision capabilities
+- **Model**: When images are attached, automatically switches to `grok-vision-beta` for vision capabilities
 
 ### Usage
 1. Click the attachment icon (📎) in the chat input
@@ -59,3 +57,8 @@ Temply AI supports image attachments to provide visual reference:
 
 The AI will analyze the image and generate sections based on visual reference.
 
+## API Configuration
+
+- **Base URL**: `https://api.x.ai/v1`
+- **SDK**: Uses OpenAI SDK (fully compatible with X.AI)
+- **API Key**: Get your key from https://console.x.ai
