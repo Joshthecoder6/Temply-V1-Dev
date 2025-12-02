@@ -49,6 +49,7 @@ function PricingContent() {
   const { subscribe, customer, plans } = useMantle();
   const [yearlyPricing, setYearlyPricing] = useState(false);
   const fetcher = useFetcher<any>();
+  const cancelFetcher = useFetcher<any>();
 
   useEffect(() => {
     if (fetcher.data?.confirmationUrl) {
@@ -56,6 +57,17 @@ function PricingContent() {
       window.top!.location.href = fetcher.data.confirmationUrl;
     }
   }, [fetcher.data]);
+
+  // Auto-select yearly toggle if customer has yearly subscription
+  useEffect(() => {
+    if (customer?.subscription?.plan?.id) {
+      const isYearly = customer.subscription.plan.id === planIds.BEGINNER_YEARLY ||
+        customer.subscription.plan.id === planIds.GROWTH_YEARLY;
+      if (isYearly) {
+        setYearlyPricing(true);
+      }
+    }
+  }, [customer, planIds]);
 
   // Log plans from useMantle hook on mount
   useEffect(() => {
@@ -93,8 +105,10 @@ function PricingContent() {
     console.log('=== END HOOK PLANS LIST ===');
   }, [plans, customer]);
 
-  const isStarterActive = customer?.subscription?.plan?.id === planIds.BEGINNER;
-  const isGrowthActive = customer?.subscription?.plan?.id === planIds.GROWTH;
+  const isStarterActive = customer?.subscription?.plan?.id === planIds.BEGINNER ||
+    customer?.subscription?.plan?.id === planIds.BEGINNER_YEARLY;
+  const isGrowthActive = customer?.subscription?.plan?.id === planIds.GROWTH ||
+    customer?.subscription?.plan?.id === planIds.GROWTH_YEARLY;
 
   // Debug: Test if useMantle works
   console.log("DEBUG: useMantle result:", { subscribe: typeof subscribe, customer, plansCount: plans?.length });
@@ -355,6 +369,29 @@ function PricingContent() {
                       {isStarterActive ? "Current Plan" : "Try for free for 7 days"}
                     </Button>
                   </fetcher.Form>
+                  {isStarterActive && customer?.subscription?.id && (
+                    <div style={{ textAlign: 'center', marginTop: '8px' }}>
+                      <cancelFetcher.Form action="/app/api/subscription/cancel" method="post">
+                        <input type="hidden" name="subscriptionId" value={customer.subscription.id} />
+                        <button
+                          type="submit"
+                          disabled={cancelFetcher.state !== "idle"}
+                          style={{
+                            background: 'none',
+                            border: 'none',
+                            color: '#D72C0D',
+                            cursor: 'pointer',
+                            fontSize: '14px',
+                            fontWeight: 500,
+                            textDecoration: 'none',
+                            padding: 0,
+                          }}
+                        >
+                          {cancelFetcher.state !== "idle" ? "Cancelling..." : "Cancel"}
+                        </button>
+                      </cancelFetcher.Form>
+                    </div>
+                  )}
                 </div>
               </div>
             </Grid.Cell>
@@ -575,6 +612,29 @@ function PricingContent() {
                       {isGrowthActive ? "Current Plan" : "Try for free for 14 days"}
                     </Button>
                   </fetcher.Form>
+                  {isGrowthActive && customer?.subscription?.id && (
+                    <div style={{ textAlign: 'center', marginTop: '8px' }}>
+                      <cancelFetcher.Form action="/app/api/subscription/cancel" method="post">
+                        <input type="hidden" name="subscriptionId" value={customer.subscription.id} />
+                        <button
+                          type="submit"
+                          disabled={cancelFetcher.state !== "idle"}
+                          style={{
+                            background: 'none',
+                            border: 'none',
+                            color: '#D72C0D',
+                            cursor: 'pointer',
+                            fontSize: '14px',
+                            fontWeight: 500,
+                            textDecoration: 'none',
+                            padding: 0,
+                          }}
+                        >
+                          {cancelFetcher.state !== "idle" ? "Cancelling..." : "Cancel"}
+                        </button>
+                      </cancelFetcher.Form>
+                    </div>
+                  )}
                 </div>
               </div>
             </Grid.Cell>
