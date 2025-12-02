@@ -47,11 +47,9 @@ export default function PricingPage() {
 function PricingContent() {
   // Subscribe/cancel functions from Mantle
   const { planIds, availablePlans } = useLoaderData<typeof loader>();
-  const { subscribe, cancel, customer, plans } = useMantle();
+  const { subscribe, customer, plans } = useMantle();
   const [yearlyPricing, setYearlyPricing] = useState(false);
   const fetcher = useFetcher<any>();
-  const [isCancelling, setIsCancelling] = useState(false);
-  const cancelFetcher = useFetcher<any>();
 
   useEffect(() => {
     if (fetcher.data?.confirmationUrl) {
@@ -123,19 +121,13 @@ function PricingContent() {
     }
   }, [customer]);
 
-  // Handle subscription cancellation
-  const handleCancel = async () => {
-    if (!customer?.subscription?.id) return;
+  // Handle subscription management via Mantle's customer portal
+  const handleManageSubscription = () => {
+    if (!customer?.id) return;
 
-    setIsCancelling(true);
-    try {
-      await cancel(customer.subscription.id);
-      // Mantle will handle the update automatically
-    } catch (error) {
-      console.error('Failed to cancel subscription:', error);
-    } finally {
-      setIsCancelling(false);
-    }
+    // Navigate to Mantle's customer portal
+    const portalUrl = `https://customer.heymantle.com/customer/${customer.id}`;
+    window.open(portalUrl, '_blank');
   };
 
   // Debug: Test if useMantle works
@@ -400,21 +392,19 @@ function PricingContent() {
                   {isStarterActive && customer?.subscription?.id && (
                     <div style={{ textAlign: 'center', marginTop: '8px' }}>
                       <button
-                        onClick={handleCancel}
-                        disabled={isCancelling}
+                        onClick={handleManageSubscription}
                         style={{
                           background: 'none',
                           border: 'none',
                           color: '#D72C0D',
-                          cursor: isCancelling ? 'not-allowed' : 'pointer',
+                          cursor: 'pointer',
                           fontSize: '14px',
                           fontWeight: 500,
                           textDecoration: 'none',
                           padding: 0,
-                          opacity: isCancelling ? 0.6 : 1,
                         }}
                       >
-                        {isCancelling ? "Cancelling..." : "Cancel"}
+                        Manage Subscription
                       </button>
                     </div>
                   )}
@@ -641,21 +631,19 @@ function PricingContent() {
                   {isGrowthActive && customer?.subscription?.id && (
                     <div style={{ textAlign: 'center', marginTop: '8px' }}>
                       <button
-                        onClick={handleCancel}
-                        disabled={isCancelling}
+                        onClick={handleManageSubscription}
                         style={{
                           background: 'none',
                           border: 'none',
                           color: '#D72C0D',
-                          cursor: isCancelling ? 'not-allowed' : 'pointer',
+                          cursor: 'pointer',
                           fontSize: '14px',
                           fontWeight: 500,
                           textDecoration: 'none',
                           padding: 0,
-                          opacity: isCancelling ? 0.6 : 1,
                         }}
                       >
-                        {isCancelling ? "Cancelling..." : "Cancel"}
+                        Manage Subscription
                       </button>
                     </div>
                   )}
