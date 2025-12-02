@@ -19,6 +19,13 @@ export const action = async ({ request }: ActionFunctionArgs) => {
             myshopifyDomain: shop,
         });
 
+        console.log("Cancel API Debug:", {
+            shop,
+            subscriptionId,
+            mantleCustomerId: customer.id,
+            hasToken: !!customer.customerApiToken
+        });
+
         if (!customer.customerApiToken) {
             return Response.json({ error: "Could not authenticate with Mantle" }, { status: 500 });
         }

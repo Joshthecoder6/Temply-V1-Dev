@@ -121,13 +121,18 @@ function PricingContent() {
     }
   }, [customer]);
 
-  // Handle subscription management via Mantle's customer portal
-  const handleManageSubscription = () => {
-    if (!customer?.id) return;
+  // Handle subscription cancellation via our API endpoint
+  const handleCancelSubscription = async () => {
+    if (!customer?.subscription?.id || !customer?.id) return;
 
-    // Navigate to Mantle's customer portal
-    const portalUrl = `https://customer.heymantle.com/customer/${customer.id}`;
-    window.open(portalUrl, '_blank');
+    // Use fetcher to call our cancel endpoint
+    fetcher.submit(
+      {
+        subscriptionId: customer.subscription.id,
+        customerId: customer.id
+      },
+      { method: 'post', action: '/app/api/subscription/cancel' }
+    );
   };
 
   // Debug: Test if useMantle works
@@ -392,19 +397,21 @@ function PricingContent() {
                   {isStarterActive && customer?.subscription?.id && (
                     <div style={{ textAlign: 'center', marginTop: '8px' }}>
                       <button
-                        onClick={handleManageSubscription}
+                        onClick={handleCancelSubscription}
+                        disabled={fetcher.state !== 'idle'}
                         style={{
                           background: 'none',
                           border: 'none',
                           color: '#D72C0D',
-                          cursor: 'pointer',
+                          cursor: fetcher.state !== 'idle' ? 'not-allowed' : 'pointer',
                           fontSize: '14px',
                           fontWeight: 500,
                           textDecoration: 'none',
                           padding: 0,
+                          opacity: fetcher.state !== 'idle' ? 0.6 : 1,
                         }}
                       >
-                        Manage Subscription
+                        {fetcher.state !== 'idle' ? 'Cancelling...' : 'Cancel'}
                       </button>
                     </div>
                   )}
@@ -631,19 +638,21 @@ function PricingContent() {
                   {isGrowthActive && customer?.subscription?.id && (
                     <div style={{ textAlign: 'center', marginTop: '8px' }}>
                       <button
-                        onClick={handleManageSubscription}
+                        onClick={handleCancelSubscription}
+                        disabled={fetcher.state !== 'idle'}
                         style={{
                           background: 'none',
                           border: 'none',
                           color: '#D72C0D',
-                          cursor: 'pointer',
+                          cursor: fetcher.state !== 'idle' ? 'not-allowed' : 'pointer',
                           fontSize: '14px',
                           fontWeight: 500,
                           textDecoration: 'none',
                           padding: 0,
+                          opacity: fetcher.state !== 'idle' ? 0.6 : 1,
                         }}
                       >
-                        Manage Subscription
+                        {fetcher.state !== 'idle' ? 'Cancelling...' : 'Cancel'}
                       </button>
                     </div>
                   )}
