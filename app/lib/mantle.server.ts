@@ -275,8 +275,8 @@ export async function getPlans(customerApiToken?: string): Promise<MantlePlan[]>
  * MANTLE_PLAN_ID_BEGINNER and MANTLE_PLAN_ID_GROWTH
  */
 export const MANTLE_PLAN_IDS = {
-  BEGINNER: process.env.MANTLE_PLAN_ID_BEGINNER || 'bdb0a7e1-55ae-42d2-b051-e546c0fa8509',
-  GROWTH: process.env.MANTLE_PLAN_ID_GROWTH || 'dd16fe78-ba82-4ec8-a418-dc16e826828d',
+  BEGINNER: process.env.MANTLE_PLAN_ID_BEGINNER || 'b6c3c289-2f34-404c-b3c1-a553e6935756',
+  GROWTH: process.env.MANTLE_PLAN_ID_GROWTH || 'a5331f09-bc03-4709-8af6-f2f45c515bf7',
   BEGINNER_YEARLY: process.env.MANTLE_PLAN_ID_BEGINNER_YEARLY || '2d716bbb-ff3a-41cd-b5f0-0f7545dc2530',
   GROWTH_YEARLY: process.env.MANTLE_PLAN_ID_GROWTH_YEARLY || '684fc151-7ce5-45e0-bcd5-60e4238c3da3',
 };

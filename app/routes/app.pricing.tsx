@@ -45,10 +45,12 @@ export default function PricingPage() {
 }
 
 function PricingContent() {
+  // Subscribe/cancel functions from Mantle
   const { planIds, availablePlans } = useLoaderData<typeof loader>();
-  const { subscribe, customer, plans } = useMantle();
+  const { subscribe, cancel, customer, plans } = useMantle();
   const [yearlyPricing, setYearlyPricing] = useState(false);
   const fetcher = useFetcher<any>();
+  const [isCancelling, setIsCancelling] = useState(false);
   const cancelFetcher = useFetcher<any>();
 
   useEffect(() => {
@@ -109,6 +111,32 @@ function PricingContent() {
     customer?.subscription?.plan?.id === planIds.BEGINNER_YEARLY;
   const isGrowthActive = customer?.subscription?.plan?.id === planIds.GROWTH ||
     customer?.subscription?.plan?.id === planIds.GROWTH_YEARLY;
+
+  // Debug: Log subscription structure to find correct ID
+  useEffect(() => {
+    if (customer?.subscription) {
+      console.log('=== SUBSCRIPTION DEBUG ===');
+      console.log('Full subscription object:', customer.subscription);
+      console.log('Subscription ID:', customer.subscription.id);
+      console.log('Subscription plan:', customer.subscription.plan);
+      console.log('=== END SUBSCRIPTION DEBUG ===');
+    }
+  }, [customer]);
+
+  // Handle subscription cancellation
+  const handleCancel = async () => {
+    if (!customer?.subscription?.id) return;
+
+    setIsCancelling(true);
+    try {
+      await cancel();
+      // Mantle will handle the update automatically
+    } catch (error) {
+      console.error('Failed to cancel subscription:', error);
+    } finally {
+      setIsCancelling(false);
+    }
+  };
 
   // Debug: Test if useMantle works
   console.log("DEBUG: useMantle result:", { subscribe: typeof subscribe, customer, plansCount: plans?.length });
@@ -371,25 +399,23 @@ function PricingContent() {
                   </fetcher.Form>
                   {isStarterActive && customer?.subscription?.id && (
                     <div style={{ textAlign: 'center', marginTop: '8px' }}>
-                      <cancelFetcher.Form action="/app/api/subscription/cancel" method="post">
-                        <input type="hidden" name="subscriptionId" value={customer.subscription.id} />
-                        <button
-                          type="submit"
-                          disabled={cancelFetcher.state !== "idle"}
-                          style={{
-                            background: 'none',
-                            border: 'none',
-                            color: '#D72C0D',
-                            cursor: 'pointer',
-                            fontSize: '14px',
-                            fontWeight: 500,
-                            textDecoration: 'none',
-                            padding: 0,
-                          }}
-                        >
-                          {cancelFetcher.state !== "idle" ? "Cancelling..." : "Cancel"}
-                        </button>
-                      </cancelFetcher.Form>
+                      <button
+                        onClick={handleCancel}
+                        disabled={isCancelling}
+                        style={{
+                          background: 'none',
+                          border: 'none',
+                          color: '#D72C0D',
+                          cursor: isCancelling ? 'not-allowed' : 'pointer',
+                          fontSize: '14px',
+                          fontWeight: 500,
+                          textDecoration: 'none',
+                          padding: 0,
+                          opacity: isCancelling ? 0.6 : 1,
+                        }}
+                      >
+                        {isCancelling ? "Cancelling..." : "Cancel"}
+                      </button>
                     </div>
                   )}
                 </div>
@@ -614,25 +640,23 @@ function PricingContent() {
                   </fetcher.Form>
                   {isGrowthActive && customer?.subscription?.id && (
                     <div style={{ textAlign: 'center', marginTop: '8px' }}>
-                      <cancelFetcher.Form action="/app/api/subscription/cancel" method="post">
-                        <input type="hidden" name="subscriptionId" value={customer.subscription.id} />
-                        <button
-                          type="submit"
-                          disabled={cancelFetcher.state !== "idle"}
-                          style={{
-                            background: 'none',
-                            border: 'none',
-                            color: '#D72C0D',
-                            cursor: 'pointer',
-                            fontSize: '14px',
-                            fontWeight: 500,
-                            textDecoration: 'none',
-                            padding: 0,
-                          }}
-                        >
-                          {cancelFetcher.state !== "idle" ? "Cancelling..." : "Cancel"}
-                        </button>
-                      </cancelFetcher.Form>
+                      <button
+                        onClick={handleCancel}
+                        disabled={isCancelling}
+                        style={{
+                          background: 'none',
+                          border: 'none',
+                          color: '#D72C0D',
+                          cursor: isCancelling ? 'not-allowed' : 'pointer',
+                          fontSize: '14px',
+                          fontWeight: 500,
+                          textDecoration: 'none',
+                          padding: 0,
+                          opacity: isCancelling ? 0.6 : 1,
+                        }}
+                      >
+                        {isCancelling ? "Cancelling..." : "Cancel"}
+                      </button>
                     </div>
                   )}
                 </div>
