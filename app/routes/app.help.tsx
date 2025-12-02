@@ -14,8 +14,9 @@ import {
   Collapsible,
   Button,
   InlineStack,
+  Link,
 } from "@shopify/polaris";
-import { ChevronDownIcon } from "@shopify/polaris-icons";
+import { PlusIcon, MinusIcon } from "@shopify/polaris-icons";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { session } = await authenticate.admin(request);
@@ -25,12 +26,12 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 
 export default function Help() {
   const { shop } = useLoaderData<typeof loader>();
-  const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(null);
+  const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(0);
 
   const faqs = [
     {
       question: "What is Temply and why do I need it?",
-      answer: "Temply is a funnel builder designed specifically for Shopify. It lets you create high-converting landing pages like VSLs, listicles, advertorials, and quiz funnels – directly inside the Shopify Theme Editor. No external pagebuilders or third-party tools required."
+      answer: "Temply is a powerful Shopify app that provides pre-built, customizable funnel templates designed to boost your conversion rates. It helps you create professional sales funnels without any coding knowledge, saving you time and increasing your revenue through optimized customer journeys."
     },
     {
       question: "Do I need technical skills to use Temply?",
@@ -56,92 +57,86 @@ export default function Help() {
 
   return (
     <Page>
-      <BlockStack gap="500">
-        {/* Header */}
-        <BlockStack gap="200">
-          <Text as="h1" variant="headingLg">
-            Frequently asked questions
-          </Text>
-          <Text as="p" variant="bodyMd" tone="subdued">
-            Still have questions? Reach out to our support team directly from the app dashboard.
-          </Text>
-        </BlockStack>
-
-        {/* FAQ Section */}
-        <Card>
-          <BlockStack gap="400">
-            <Text as="h2" variant="headingSm">
-              FAQ
+      <div style={{ maxWidth: '800px', margin: '0 auto' }}>
+        <BlockStack gap="500">
+          {/* Header */}
+          <BlockStack gap="200">
+            <Text as="h1" variant="headingLg">
+              Frequently asked questions
             </Text>
+            <Text as="p" variant="bodyMd" tone="subdued">
+              Still have questions? Reach out to our support team directly from the app dashboard.
+            </Text>
+          </BlockStack>
 
-            {/* FAQ Items */}
+          {/* FAQ Section */}
+          <Card padding="0">
             <BlockStack gap="0">
               {faqs.map((faq, index) => (
-                <div key={index}>
-                  <Button
-                    plain
-                    fullWidth
+                <div key={index} style={{
+                  borderBottom: index < faqs.length - 1 ? '1px solid var(--p-color-border-subdued)' : 'none'
+                }}>
+                  <div
                     onClick={() => toggleFaq(index)}
-                    textAlign="left"
+                    style={{
+                      padding: '16px 20px',
+                      cursor: 'pointer',
+                      userSelect: 'none',
+                    }}
                   >
                     <InlineStack align="space-between" blockAlign="center" gap="400">
                       <Text as="span" variant="bodyMd" fontWeight="medium">
                         {faq.question}
                       </Text>
-                      <div
-                        style={{
-                          transform: openFaqIndex === index ? 'rotate(180deg)' : 'rotate(0deg)',
-                          transition: 'transform 0.2s ease',
-                          display: 'flex',
-                          alignItems: 'center',
-                        }}
-                      >
-                        <ChevronDownIcon />
+                      <div style={{ flexShrink: 0 }}>
+                        {openFaqIndex === index ? <MinusIcon /> : <PlusIcon />}
                       </div>
                     </InlineStack>
-                  </Button>
-                  
+                  </div>
+
                   <Collapsible
                     open={openFaqIndex === index}
                     id={`faq-${index}`}
-                    transition={{ duration: '200ms', timingFunction: 'ease' }}
+                    transition={{ duration: '200ms', timingFunction: 'ease-in-out' }}
                   >
-                    <div style={{ padding: '0 16px 16px 16px' }}>
+                    <div style={{
+                      padding: '0 20px 20px 20px',
+                      background: 'var(--p-color-bg-surface-secondary)'
+                    }}>
                       <Text as="p" variant="bodyMd" tone="subdued">
                         {faq.answer}
                       </Text>
                     </div>
                   </Collapsible>
-                  
-                  {index < faqs.length - 1 && (
-                    <div style={{ borderTop: '1px solid var(--p-border-subdued)' }} />
-                  )}
                 </div>
               ))}
             </BlockStack>
-          </BlockStack>
-        </Card>
+          </Card>
 
-        {/* Additional Help Section */}
-        <Card>
-          <BlockStack gap="300">
-            <Text as="h3" variant="headingSm">
-              Need more help?
-            </Text>
-            <Text as="p" variant="bodyMd" tone="subdued">
-              Check out the{' '}
-              <s-link href={`https://${shop}/admin/themes/current/editor?context=apps`} target="_blank">
-                Theme Editor
-              </s-link>
-              {' '}to customize your funnels, or browse{' '}
-              <s-link href="/app/funnels">
-                Prebuild Funnels
-              </s-link>
-              {' '}to explore more templates.
-            </Text>
-          </BlockStack>
-        </Card>
-      </BlockStack>
+          {/* Additional Help Section */}
+          <Card>
+            <BlockStack gap="300">
+              <Text as="h3" variant="headingSm">
+                Need more help?
+              </Text>
+              <Text as="p" variant="bodyMd" tone="subdued">
+                Check out the{' '}
+                <Link url={`https://${shop}/admin/themes/current/editor?context=apps`} target="_blank">
+                  Theme Editor
+                </Link>
+                {' '}to customize your funnels, or browse{' '}
+                <Link url="/app/funnels">
+                  Prebuild Funnels
+                </Link>
+                {' '}to explore more templates.
+              </Text>
+              <div style={{ marginTop: '8px' }}>
+                <Button>Support Ticket</Button>
+              </div>
+            </BlockStack>
+          </Card>
+        </BlockStack>
+      </div>
     </Page>
   );
 }
@@ -149,4 +144,3 @@ export default function Help() {
 export const headers: HeadersFunction = (headersArgs) => {
   return boundary.headers(headersArgs);
 };
-
