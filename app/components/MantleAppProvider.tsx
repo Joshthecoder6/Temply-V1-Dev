@@ -86,34 +86,10 @@ function useExtendedMantle(): ExtendedMantleContext {
             // For now, downgrade uses the same logic as subscribe
             return originalMantle.subscribe(params);
         },
-        cancel: async () => {
-            console.log("EXTENDED CANCEL: Initiating cancellation");
-            const subscriptionId = originalMantle.customer?.subscription?.id;
-
-            if (!subscriptionId) {
-                console.error("No active subscription found in Mantle context");
-                throw new Error("No active subscription to cancel");
-            }
-
-            try {
-                const response = await fetch('/app/api/subscription/cancel', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                    body: new URLSearchParams({ subscriptionId })
-                });
-
-                if (!response.ok) {
-                    const errorText = await response.text();
-                    throw new Error(`Failed to cancel subscription: ${errorText}`);
-                }
-
-                // Reload to update state
-                window.location.reload();
-                return true;
-            } catch (error) {
-                console.error("Error in cancel function:", error);
-                throw error;
-            }
+        cancel: async (params) => {
+            console.log("EXTENDED CANCEL:", params);
+            // Cancel implementation - this would need to be implemented based on Mantle API
+            throw new Error("Cancel function not yet implemented");
         },
         customer: originalMantle.customer,
         plans: originalMantle.plans || []

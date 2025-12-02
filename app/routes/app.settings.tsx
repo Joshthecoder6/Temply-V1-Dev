@@ -64,7 +64,7 @@ export default function SettingsPage() {
                             ) : (
                                 <BlockStack gap="400">
                                     <Banner tone="info">
-                                        You are currently on the <strong>Free</strong> plan.
+                                        {subscription?.plan?.name || "Free"}
                                     </Banner>
                                     <div style={{ marginTop: '1rem' }}>
                                         <Link to="/app/pricing">

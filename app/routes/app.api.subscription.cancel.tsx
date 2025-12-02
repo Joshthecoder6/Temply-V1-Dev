@@ -1,6 +1,6 @@
 import type { ActionFunctionArgs } from "react-router";
 import { authenticate } from "../shopify.server";
-import { identifyCustomer, cancelSubscription, getSubscription } from "../lib/mantle.server";
+import { identifyCustomer, cancelSubscription } from "../lib/mantle.server";
 
 export const action = async ({ request }: ActionFunctionArgs) => {
     try {
@@ -8,37 +8,30 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         const { shop } = session;
 
         const formData = await request.formData();
-        const submittedSubscriptionId = formData.get("subscriptionId") as string;
+        const subscriptionId = formData.get("subscriptionId") as string;
+
+        if (!subscriptionId) {
+            return Response.json({ error: "Subscription ID is required" }, { status: 400 });
+        }
 
         // Identify customer to get token
         const customer = await identifyCustomer(shop, {
             myshopifyDomain: shop,
         });
 
+        console.log("Cancel API Debug:", {
+            shop,
+            subscriptionId,
+            mantleCustomerId: customer.id,
+            hasToken: !!customer.customerApiToken
+        });
+
         if (!customer.customerApiToken) {
             return Response.json({ error: "Could not authenticate with Mantle" }, { status: 500 });
         }
 
-        // Fetch the REAL active subscription from Mantle
-        const activeSubscription = await getSubscription(customer.customerApiToken);
-
-        console.log("Cancel API Debug:", {
-            shop,
-            submittedSubscriptionId,
-            mantleCustomerId: customer.id,
-            activeSubscriptionId: activeSubscription?.id,
-            activeSubscriptionStatus: activeSubscription?.status
-        });
-
-        // Use the ID from Mantle if available, otherwise fallback to submitted ID
-        const subscriptionIdToCancel = activeSubscription?.id || submittedSubscriptionId;
-
-        if (!subscriptionIdToCancel) {
-            return Response.json({ error: "No active subscription found to cancel" }, { status: 400 });
-        }
-
         // Cancel subscription
-        await cancelSubscription(subscriptionIdToCancel, customer.customerApiToken);
+        await cancelSubscription(subscriptionId, customer.customerApiToken);
 
         return Response.json({ success: true });
     } catch (error) {
