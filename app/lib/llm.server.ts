@@ -2,8 +2,8 @@ import OpenAI from 'openai';
 
 // Initialize X.AI client (OpenAI SDK compatible)
 const openai = new OpenAI({
-    apiKey: process.env.XAI_API_KEY || '',
-    baseURL: 'https://api.x.ai/v1',
+  apiKey: process.env.XAI_API_KEY || '',
+  baseURL: 'https://api.x.ai/v1',
 });
 
 // System prompt for section generation
@@ -244,206 +244,217 @@ IMPORTANT: Your response must ALWAYS be valid JSON in this exact format:
 If the user's request is unclear, make reasonable assumptions and create something beautiful that exceeds expectations.`;
 
 export interface ChatMessage {
-    role: 'system' | 'user' | 'assistant';
-    content: string;
-    attachments?: FileAttachment[];
+  role: 'system' | 'user' | 'assistant';
+  content: string;
+  attachments?: FileAttachment[];
 }
 
 export interface FileAttachment {
-    name: string;
-    type: string;
-    size: number;
-    dataUrl: string;
+  name: string;
+  type: string;
+  size: number;
+  dataUrl: string;
 }
 
 export interface GeneratedSection {
-    sectionName: string;
-    sectionType: string;
-    htmlCode: string;
-    cssCode?: string;
-    jsCode?: string;
-    liquidCode?: string;
-    explanation?: string;
+  sectionName: string;
+  sectionType: string;
+  htmlCode: string;
+  cssCode?: string;
+  jsCode?: string;
+  liquidCode?: string;
+  explanation?: string;
 }
 
 /**
  * Generate a section using X.AI Grok streaming
  */
 export async function generateSectionStream(
-    messages: ChatMessage[],
-    onChunk: (chunk: string) => void,
-    onComplete: (section: GeneratedSection) => void,
-    onError: (error: Error) => void
+  messages: ChatMessage[],
+  onChunk: (chunk: string) => void,
+  onComplete: (section: GeneratedSection) => void,
+  onError: (error: Error) => void
 ) {
-    try {
-        const stream = await openai.chat.completions.create({
-            model: process.env.XAI_MODEL || 'grok-beta',
-            messages: [
-                { role: 'system', content: SYSTEM_PROMPT },
-                ...messages,
-            ],
-            temperature: parseFloat(process.env.XAI_TEMPERATURE || '0.7'),
-            max_tokens: parseInt(process.env.XAI_MAX_TOKENS || '2000'),
-            stream: true,
-        });
+  try {
+    const stream = await openai.chat.completions.create({
+      model: process.env.XAI_MODEL || 'grok-beta',
+      messages: [
+        { role: 'system', content: SYSTEM_PROMPT },
+        ...messages,
+      ],
+      temperature: parseFloat(process.env.XAI_TEMPERATURE || '0.7'),
+      max_tokens: parseInt(process.env.XAI_MAX_TOKENS || '2000'),
+      stream: true,
+    });
 
-        let fullContent = '';
+    let fullContent = '';
 
-        for await (const chunk of stream) {
-            const content = chunk.choices[0]?.delta?.content || '';
-            if (content) {
-                fullContent += content;
-                onChunk(content);
-            }
-        }
-
-        // Parse the JSON response
-        try {
-            const jsonMatch = fullContent.match(/\{[\s\S]*\}/);
-            if (jsonMatch) {
-                const section = JSON.parse(jsonMatch[0]) as GeneratedSection;
-                onComplete(section);
-            } else {
-                throw new Error('No valid JSON found in response');
-            }
-        } catch (parseError) {
-            console.error('Failed to parse LLM response:', fullContent);
-            onError(new Error('Failed to parse section from LLM response'));
-        }
-    } catch (error) {
-        console.error('X.AI API error:', error);
-        onError(error as Error);
+    for await (const chunk of stream) {
+      const content = chunk.choices[0]?.delta?.content || '';
+      if (content) {
+        fullContent += content;
+        onChunk(content);
+      }
     }
+
+    // Parse the JSON response
+    try {
+      const jsonMatch = fullContent.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        const section = JSON.parse(jsonMatch[0]) as GeneratedSection;
+        onComplete(section);
+      } else {
+        throw new Error('No valid JSON found in response');
+      }
+    } catch (parseError) {
+      console.error('Failed to parse LLM response:', fullContent);
+      onError(new Error('Failed to parse section from LLM response'));
+    }
+  } catch (error) {
+    console.error('X.AI API error:', error);
+    onError(error as Error);
+  }
 }
 
 /**
  * Extract text from PDF data URL
  */
 async function extractTextFromPDF(dataUrl: string): Promise<string> {
-    try {
-        // Dynamic import for pdf-parse (ES module compatibility)
-        // @ts-ignore - pdf-parse has complex module structure
-        const pdf = (await import('pdf-parse')).default || (await import('pdf-parse'));
+  try {
+    // Dynamic import for pdf-parse (ES module compatibility)
+    // @ts-ignore - pdf-parse has complex module structure
+    const pdf = (await import('pdf-parse')).default || (await import('pdf-parse'));
 
-        const base64Data = dataUrl.split(',')[1];
-        const buffer = Buffer.from(base64Data, 'base64');
-        const data = await pdf(buffer);
-        return data.text;
-    } catch (error) {
-        console.error('PDF extraction error:', error);
-        return '[PDF text extraction failed]';
-    }
+    const base64Data = dataUrl.split(',')[1];
+    const buffer = Buffer.from(base64Data, 'base64');
+    const data = await pdf(buffer);
+    return data.text;
+  } catch (error) {
+    console.error('PDF extraction error:', error);
+    return '[PDF text extraction failed]';
+  }
 }
 
 /**
  * Extract text from text file data URL
  */
 function extractTextFromTextFile(dataUrl: string): string {
-    try {
-        const base64Data = dataUrl.split(',')[1];
-        const buffer = Buffer.from(base64Data, 'base64');
-        return buffer.toString('utf-8');
-    } catch (error) {
-        console.error('Text file extraction error:', error);
-        return '[Text file extraction failed]';
-    }
+  try {
+    const base64Data = dataUrl.split(',')[1];
+    const buffer = Buffer.from(base64Data, 'base64');
+    return buffer.toString('utf-8');
+  } catch (error) {
+    console.error('Text file extraction error:', error);
+    return '[Text file extraction failed]';
+  }
 }
 
 /**
  * Generate a section without streaming (simpler for testing)
  */
 export async function generateSection(
-    messages: ChatMessage[]
+  messages: ChatMessage[]
 ): Promise<GeneratedSection> {
+  try {
+    // Check if any message has attachments and determine types
+    let hasImages = false;
+
+    // Process messages and handle attachments
+    const processedMessages = await Promise.all(messages.map(async (msg) => {
+      if (!msg.attachments || msg.attachments.length === 0) {
+        return {
+          role: msg.role,
+          content: msg.content
+        };
+      }
+
+      // Process attachments
+      const content: any[] = [];
+      let additionalText = msg.content;
+
+      for (const attachment of msg.attachments) {
+        if (attachment.type.startsWith('image/')) {
+          // Image attachment - use Vision API
+          hasImages = true;
+          content.push({
+            type: 'image_url',
+            image_url: {
+              url: attachment.dataUrl,
+            }
+          });
+        } else if (attachment.type === 'application/pdf') {
+          // PDF attachment - extract text
+          const extractedText = await extractTextFromPDF(attachment.dataUrl);
+          additionalText += `\n\n[Content from ${attachment.name}]:\n${extractedText}`;
+        } else if (attachment.type === 'text/plain') {
+          // Text file - extract content
+          const extractedText = extractTextFromTextFile(attachment.dataUrl);
+          additionalText += `\n\n[Content from ${attachment.name}]:\n${extractedText}`;
+        }
+      }
+
+      // If we have images, return vision format
+      if (hasImages) {
+        if (additionalText) {
+          content.unshift({
+            type: 'text',
+            text: additionalText
+          });
+        }
+        return {
+          role: msg.role,
+          content
+        };
+      }
+
+      // Otherwise return text-only format
+      return {
+        role: msg.role,
+        content: additionalText
+      };
+    }));
+
+    const completion = await openai.chat.completions.create({
+      model: hasImages ? 'grok-vision-beta' : (process.env.XAI_MODEL || 'grok-beta'),
+      messages: [
+        { role: 'system', content: SYSTEM_PROMPT },
+        ...processedMessages,
+      ] as any,
+      temperature: parseFloat(process.env.XAI_TEMPERATURE || '0.7'),
+      max_tokens: parseInt(process.env.XAI_MAX_TOKENS || '2000'),
+      // Note: X.AI doesn't support response_format, so we parse JSON manually
+    });
+
+    const content = completion.choices[0]?.message?.content || '';
+
+    // Extract JSON from response (X.AI may wrap it in markdown or text)
     try {
-        // Check if any message has attachments and determine types
-        let hasImages = false;
-
-        // Process messages and handle attachments
-        const processedMessages = await Promise.all(messages.map(async (msg) => {
-            if (!msg.attachments || msg.attachments.length === 0) {
-                return {
-                    role: msg.role,
-                    content: msg.content
-                };
-            }
-
-            // Process attachments
-            const content: any[] = [];
-            let additionalText = msg.content;
-
-            for (const attachment of msg.attachments) {
-                if (attachment.type.startsWith('image/')) {
-                    // Image attachment - use Vision API
-                    hasImages = true;
-                    content.push({
-                        type: 'image_url',
-                        image_url: {
-                            url: attachment.dataUrl,
-                        }
-                    });
-                } else if (attachment.type === 'application/pdf') {
-                    // PDF attachment - extract text
-                    const extractedText = await extractTextFromPDF(attachment.dataUrl);
-                    additionalText += `\n\n[Content from ${attachment.name}]:\n${extractedText}`;
-                } else if (attachment.type === 'text/plain') {
-                    // Text file - extract content
-                    const extractedText = extractTextFromTextFile(attachment.dataUrl);
-                    additionalText += `\n\n[Content from ${attachment.name}]:\n${extractedText}`;
-                }
-            }
-
-            // If we have images, return vision format
-            if (hasImages) {
-                if (additionalText) {
-                    content.unshift({
-                        type: 'text',
-                        text: additionalText
-                    });
-                }
-                return {
-                    role: msg.role,
-                    content
-                };
-            }
-
-            // Otherwise return text-only format
-            return {
-                role: msg.role,
-                content: additionalText
-            };
-        }));
-
-        const completion = await openai.chat.completions.create({
-            model: hasImages ? 'grok-vision-beta' : (process.env.XAI_MODEL || 'grok-beta'),
-            messages: [
-                { role: 'system', content: SYSTEM_PROMPT },
-                ...processedMessages,
-            ] as any,
-            temperature: parseFloat(process.env.XAI_TEMPERATURE || '0.7'),
-            max_tokens: parseInt(process.env.XAI_MAX_TOKENS || '2000'),
-            response_format: { type: 'json_object' },
-        });
-
-        const content = completion.choices[0]?.message?.content || '{}';
-        const section = JSON.parse(content) as GeneratedSection;
-
+      const jsonMatch = content.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        const section = JSON.parse(jsonMatch[0]) as GeneratedSection;
         return section;
-    } catch (error) {
-        console.error('X.AI API error:', error);
-        throw error;
+      } else {
+        throw new Error('No valid JSON found in X.AI response');
+      }
+    } catch (parseError) {
+      console.error('Failed to parse X.AI response:', content);
+      throw new Error('Failed to parse section from X.AI response');
     }
+  } catch (error) {
+    console.error('X.AI API error:', error);
+    throw error;
+  }
 }
 
 /**
  * Validate API key
  */
 export async function validateXAIKey(): Promise<boolean> {
-    try {
-        await openai.models.list();
-        return true;
-    } catch (error) {
-        console.error('X.AI API key validation failed:', error);
-        return false;
-    }
+  try {
+    await openai.models.list();
+    return true;
+  } catch (error) {
+    console.error('X.AI API key validation failed:', error);
+    return false;
+  }
 }
