@@ -86,7 +86,12 @@ export default function Help() {
           <Card padding="0">
             <BlockStack gap="0">
               {faqs.map((faq, index) => (
-                <div key={index}>
+                <div
+                  key={index}
+                  style={{
+                    borderBottom: index < faqs.length - 1 ? '1px solid #E3E3E3' : 'none'
+                  }}
+                >
                   <div
                     onClick={() => toggleFaq(index)}
                     style={{
@@ -111,7 +116,7 @@ export default function Help() {
                     transition={{ duration: '200ms', timingFunction: 'ease-in-out' }}
                   >
                     <div style={{
-                      borderTop: '1px solid var(--p-color-border-subdued)',
+                      borderTop: '1px solid #E3E3E3',
                       padding: '16px 20px 20px 20px'
                     }}>
                       <Text as="p" variant="bodyMd" tone="subdued">
@@ -119,14 +124,6 @@ export default function Help() {
                       </Text>
                     </div>
                   </Collapsible>
-
-                  {index < faqs.length - 1 && (
-                    <div style={{
-                      height: '1px',
-                      backgroundColor: 'var(--p-color-border-subdued)',
-                      margin: 0
-                    }} />
-                  )}
                 </div>
               ))}
             </BlockStack>
