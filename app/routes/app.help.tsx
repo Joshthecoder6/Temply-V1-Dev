@@ -144,9 +144,9 @@ export default function Help() {
                   Theme Editor
                 </Link>
                 {' '}to customize your funnels, or browse{' '}
-                <Link url="/app/funnels" removeUnderline={false}>
+                <s-link href="/app/funnels">
                   Prebuild Funnels
-                </Link>
+                </s-link>
                 {' '}to explore more templates.
               </Text>
               <div style={{ marginTop: '8px' }}>
