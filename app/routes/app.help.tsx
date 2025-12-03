@@ -145,7 +145,13 @@ export default function Help() {
                 {' '}to explore more templates.
               </Text>
               <div style={{ marginTop: '8px' }}>
-                <Button variant="primary">Support Ticket</Button>
+                <Button
+                  variant="primary"
+                  url="https://discord.gg/KJKF5eZXjs"
+                  target="_blank"
+                >
+                  Support Ticket
+                </Button>
               </div>
             </BlockStack>
           </Card>
