@@ -364,7 +364,7 @@ export async function createSubscriptionCheckout(
     }
 
     if (discountCode) {
-      requestBody.discountCode = discountCode;  // Add discount code if provided
+      requestBody.discount = discountCode;  // Add discount code if provided (try 'discount' instead of 'discountCode')
       console.log('Applying discount code:', discountCode);
     }
 
