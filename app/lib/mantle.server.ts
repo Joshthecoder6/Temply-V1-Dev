@@ -289,12 +289,14 @@ export const MANTLE_PLAN_IDS = {
  * @param planName - The plan name (e.g., "Beginner Plan")
  * @param customerApiToken - The customer's API token from Mantle
  * @param returnUrl - Optional return URL after successful checkout
+ * @param discountCode - Optional discount code to apply
  */
 export async function createSubscriptionCheckout(
   customerId: string,
   planName: string,
   customerApiToken: string,
-  returnUrl?: string
+  returnUrl?: string,
+  discountCode?: string
 ): Promise<string> {
   try {
     // Fetch available plans from Mantle to get the correct plan ID
@@ -359,6 +361,11 @@ export async function createSubscriptionCheckout(
 
     if (returnUrl) {
       requestBody.returnUrl = returnUrl;  // Mantle API uses camelCase
+    }
+
+    if (discountCode) {
+      requestBody.discountCode = discountCode;  // Add discount code if provided
+      console.log('Applying discount code:', discountCode);
     }
 
     const endpoint = `${MANTLE_API_BASE_URL}/subscriptions`;

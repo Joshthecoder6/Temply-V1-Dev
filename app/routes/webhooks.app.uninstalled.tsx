@@ -1,7 +1,7 @@
 import type { ActionFunctionArgs } from "react-router";
 import { authenticate } from "../shopify.server";
 import db from "../db.server";
-import { identifyCustomer, cancelSubscription } from "../lib/mantle.server";
+import { identifyCustomer, cancelSubscription, getSubscription } from "../lib/mantle.server";
 
 export const action = async ({ request }: ActionFunctionArgs) => {
   const timestamp = new Date().toISOString();
@@ -30,22 +30,29 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         myshopifyDomain: shop,
       });
 
-      if (customer?.customerApiToken && customer?.subscription?.id) {
-        console.log(`📋 Found subscription ID: ${customer.subscription.id}`);
-        console.log(`🚫 Attempting to cancel subscription...`);
+      if (customer?.customerApiToken) {
+        // Get active subscription
+        const subscription = await getSubscription(customer.customerApiToken);
 
-        const cancelled = await cancelSubscription(
-          customer.subscription.id,
-          customer.customerApiToken
-        );
+        if (subscription?.id) {
+          console.log(`📋 Found subscription ID: ${subscription.id}`);
+          console.log(`🚫 Attempting to cancel subscription...`);
 
-        if (cancelled) {
-          console.log(`✅ Successfully cancelled subscription for ${shop}`);
+          const cancelled = await cancelSubscription(
+            subscription.id,
+            customer.customerApiToken
+          );
+
+          if (cancelled) {
+            console.log(`✅ Successfully cancelled subscription for ${shop}`);
+          } else {
+            console.log(`⚠️ Failed to cancel subscription for ${shop}`);
+          }
         } else {
-          console.log(`⚠️ Failed to cancel subscription for ${shop}`);
+          console.log(`ℹ️ No active subscription found for ${shop}`);
         }
       } else {
-        console.log(`ℹ️ No active subscription found for ${shop}`);
+        console.log(`⚠️ No customer API token found for ${shop}`);
       }
     } catch (mantleError) {
       // Log error but don't fail webhook - session deletion should still happen

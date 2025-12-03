@@ -21,10 +21,12 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     const formData = await request.formData();
     const planType = formData.get("plan") as string;
     const source = formData.get("source") as string || "pricing"; // Track where the request came from
+    const discountCode = formData.get("discount") as string | null; // Get discount code if provided
 
     console.log('Subscribe action - Plan selection:', {
       planType,
       source,
+      discountCode: discountCode || 'none',
     });
 
     if (!planType || !["beginner", "growth", "beginner_yearly", "growth_yearly"].includes(planType)) {
@@ -114,7 +116,8 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       session.shop,
       mantlePlanName,
       customer.customerApiToken,
-      returnUrl
+      returnUrl,
+      discountCode || undefined  // Pass discount code if provided
     );
 
     if (!confirmationUrl) {

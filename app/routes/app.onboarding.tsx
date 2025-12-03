@@ -86,6 +86,7 @@ function OnboardingContent() {
   const [yearlyPricing, setYearlyPricing] = useState(false);
   const [discountModalOpen, setDiscountModalOpen] = useState(false);
   const [discountCode, setDiscountCode] = useState("");
+  const [validatedDiscountCode, setValidatedDiscountCode] = useState<string | undefined>(undefined);
 
   const isStarterActive = customer?.subscription?.plan?.id === planIds.BEGINNER;
   const isGrowthActive = customer?.subscription?.plan?.id === planIds.GROWTH;
@@ -538,7 +539,11 @@ function OnboardingContent() {
                         variant="primary"
                         size="large"
                         fullWidth
-                        onClick={() => subscribe({ planId: planIds.BEGINNER, returnUrl: "/app/onboarding" })}
+                        onClick={() => subscribe({
+                          planId: planIds.BEGINNER,
+                          returnUrl: "/app/onboarding",
+                          discount: validatedDiscountCode
+                        })}
                         disabled={isStarterActive}
                       >
                         {isStarterActive ? "Current Plan" : "Try for free for 7 days"}
@@ -753,7 +758,11 @@ function OnboardingContent() {
                         variant="primary"
                         size="large"
                         fullWidth
-                        onClick={() => subscribe({ planId: planIds.GROWTH, returnUrl: "/app/onboarding" })}
+                        onClick={() => subscribe({
+                          planId: planIds.GROWTH,
+                          returnUrl: "/app/onboarding",
+                          discount: validatedDiscountCode
+                        })}
                         disabled={isGrowthActive}
                       >
                         {isGrowthActive ? "Current Plan" : "Try for free for 14 days"}
@@ -1257,8 +1266,11 @@ function OnboardingContent() {
         primaryAction={{
           content: 'Validate Code',
           onAction: () => {
-            // TODO: Implement discount code validation
-            console.log('Validating discount code:', discountCode);
+            // Save the discount code for use in subscription
+            if (discountCode.trim()) {
+              setValidatedDiscountCode(discountCode.trim());
+              console.log('Discount code validated:', discountCode.trim());
+            }
             setDiscountModalOpen(false);
             setDiscountCode("");
           },

@@ -51,6 +51,7 @@ function PricingContent() {
   const [yearlyPricing, setYearlyPricing] = useState(false);
   const [discountModalOpen, setDiscountModalOpen] = useState(false);
   const [discountCode, setDiscountCode] = useState("");
+  const [validatedDiscountCode, setValidatedDiscountCode] = useState<string | undefined>(undefined);
   const fetcher = useFetcher<any>();
 
   useEffect(() => {
@@ -391,6 +392,7 @@ function PricingContent() {
                   <fetcher.Form action="/app/api/subscribe" method="post">
                     <input type="hidden" name="plan" value={yearlyPricing ? "beginner_yearly" : "beginner"} />
                     <input type="hidden" name="source" value="pricing" />
+                    {validatedDiscountCode && <input type="hidden" name="discount" value={validatedDiscountCode} />}
                     <Button
                       variant="primary"
                       size="large"
@@ -611,6 +613,7 @@ function PricingContent() {
                   <fetcher.Form action="/app/api/subscribe" method="post">
                     <input type="hidden" name="plan" value={yearlyPricing ? "growth_yearly" : "growth"} />
                     <input type="hidden" name="source" value="pricing" />
+                    {validatedDiscountCode && <input type="hidden" name="discount" value={validatedDiscountCode} />}
                     <Button
                       variant="primary"
                       size="large"
@@ -948,8 +951,11 @@ function PricingContent() {
         primaryAction={{
           content: 'Validate Code',
           onAction: () => {
-            // TODO: Implement discount code validation
-            console.log('Validating discount code:', discountCode);
+            // Save the discount code for use in subscription
+            if (discountCode.trim()) {
+              setValidatedDiscountCode(discountCode.trim());
+              console.log('Discount code validated:', discountCode.trim());
+            }
             setDiscountModalOpen(false);
             setDiscountCode("");
           },
