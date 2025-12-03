@@ -113,8 +113,8 @@ export default function Help() {
                     transition={{ duration: '200ms', timingFunction: 'ease-in-out' }}
                   >
                     <div style={{
-                      padding: '0 20px 20px 20px',
-                      background: 'var(--p-color-bg-surface-secondary)'
+                      borderTop: '1px solid var(--p-color-border-subdued)',
+                      padding: '16px 20px 20px 20px'
                     }}>
                       <Text as="p" variant="bodyMd" tone="subdued">
                         {faq.answer}
