@@ -105,10 +105,15 @@ function PricingContent() {
     console.log('=== END HOOK PLANS LIST ===');
   }, [plans, customer]);
 
-  const isStarterActive = customer?.subscription?.plan?.id === planIds.BEGINNER ||
-    customer?.subscription?.plan?.id === planIds.BEGINNER_YEARLY;
-  const isGrowthActive = customer?.subscription?.plan?.id === planIds.GROWTH ||
-    customer?.subscription?.plan?.id === planIds.GROWTH_YEARLY;
+  // Check if specific plan is active (exact match including interval)
+  const isStarterMonthlyActive = customer?.subscription?.plan?.id === planIds.BEGINNER;
+  const isStarterYearlyActive = customer?.subscription?.plan?.id === planIds.BEGINNER_YEARLY;
+  const isGrowthMonthlyActive = customer?.subscription?.plan?.id === planIds.GROWTH;
+  const isGrowthYearlyActive = customer?.subscription?.plan?.id === planIds.GROWTH_YEARLY;
+
+  // Determine which plan to show as active based on toggle
+  const isStarterActive = yearlyPricing ? isStarterYearlyActive : isStarterMonthlyActive;
+  const isGrowthActive = yearlyPricing ? isGrowthYearlyActive : isGrowthMonthlyActive;
 
   // Debug: Log subscription structure to find correct ID
   useEffect(() => {
@@ -394,27 +399,6 @@ function PricingContent() {
                       {isStarterActive ? "Current Plan" : "Try for free for 7 days"}
                     </Button>
                   </fetcher.Form>
-                  {isStarterActive && customer?.subscription?.id && (
-                    <div style={{ textAlign: 'center', marginTop: '8px' }}>
-                      <button
-                        onClick={handleCancelSubscription}
-                        disabled={fetcher.state !== 'idle'}
-                        style={{
-                          background: 'none',
-                          border: 'none',
-                          color: '#D72C0D',
-                          cursor: fetcher.state !== 'idle' ? 'not-allowed' : 'pointer',
-                          fontSize: '14px',
-                          fontWeight: 500,
-                          textDecoration: 'none',
-                          padding: 0,
-                          opacity: fetcher.state !== 'idle' ? 0.6 : 1,
-                        }}
-                      >
-                        {fetcher.state !== 'idle' ? 'Cancelling...' : 'Cancel'}
-                      </button>
-                    </div>
-                  )}
                 </div>
               </div>
             </Grid.Cell>
@@ -635,27 +619,6 @@ function PricingContent() {
                       {isGrowthActive ? "Current Plan" : "Try for free for 14 days"}
                     </Button>
                   </fetcher.Form>
-                  {isGrowthActive && customer?.subscription?.id && (
-                    <div style={{ textAlign: 'center', marginTop: '8px' }}>
-                      <button
-                        onClick={handleCancelSubscription}
-                        disabled={fetcher.state !== 'idle'}
-                        style={{
-                          background: 'none',
-                          border: 'none',
-                          color: '#D72C0D',
-                          cursor: fetcher.state !== 'idle' ? 'not-allowed' : 'pointer',
-                          fontSize: '14px',
-                          fontWeight: 500,
-                          textDecoration: 'none',
-                          padding: 0,
-                          opacity: fetcher.state !== 'idle' ? 0.6 : 1,
-                        }}
-                      >
-                        {fetcher.state !== 'idle' ? 'Cancelling...' : 'Cancel'}
-                      </button>
-                    </div>
-                  )}
                 </div>
               </div>
             </Grid.Cell>
