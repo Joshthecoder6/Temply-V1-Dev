@@ -114,6 +114,7 @@ export default function Help() {
                   >
                     <div style={{
                       borderTop: '1px solid var(--p-color-border-subdued)',
+                      borderBottom: index < faqs.length - 1 ? '1px solid var(--p-color-border-subdued)' : 'none',
                       padding: '16px 20px 20px 20px'
                     }}>
                       <Text as="p" variant="bodyMd" tone="subdued">
@@ -138,13 +139,13 @@ export default function Help() {
                   Theme Editor
                 </Link>
                 {' '}to customize your funnels, or browse{' '}
-                <Link url="/app/funnels">
+                <Link url="/app/funnels" removeUnderline={false}>
                   Prebuild Funnels
                 </Link>
                 {' '}to explore more templates.
               </Text>
               <div style={{ marginTop: '8px' }}>
-                <Button>Support Ticket</Button>
+                <Button variant="primary">Support Ticket</Button>
               </div>
             </BlockStack>
           </Card>
