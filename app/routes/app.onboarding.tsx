@@ -17,6 +17,8 @@ import {
   Checkbox,
   Link,
   Grid,
+  Modal,
+  TextField,
 } from "@shopify/polaris";
 import { Form } from "react-router";
 import {
@@ -82,6 +84,8 @@ function OnboardingContent() {
   const [onboardingStarted, setOnboardingStarted] = useState(false);
   const [selectedSections, setSelectedSections] = useState<Record<string, boolean>>({});
   const [yearlyPricing, setYearlyPricing] = useState(false);
+  const [discountModalOpen, setDiscountModalOpen] = useState(false);
+  const [discountCode, setDiscountCode] = useState("");
 
   const isStarterActive = customer?.subscription?.plan?.id === planIds.BEGINNER;
   const isGrowthActive = customer?.subscription?.plan?.id === planIds.GROWTH;
@@ -343,6 +347,7 @@ function OnboardingContent() {
                 variant="secondary"
                 tone="subdued"
                 data-discount-button
+                onClick={() => setDiscountModalOpen(true)}
               >
                 <InlineStack gap="200" blockAlign="center">
                   <img
@@ -1240,6 +1245,50 @@ function OnboardingContent() {
         {/* Spacing after footer */}
         <div style={{ height: '40px' }} />
       </BlockStack>
+
+      {/* Discount Code Modal */}
+      <Modal
+        open={discountModalOpen}
+        onClose={() => {
+          setDiscountModalOpen(false);
+          setDiscountCode("");
+        }}
+        title="Enter Discount Code"
+        primaryAction={{
+          content: 'Validate Code',
+          onAction: () => {
+            // TODO: Implement discount code validation
+            console.log('Validating discount code:', discountCode);
+            setDiscountModalOpen(false);
+            setDiscountCode("");
+          },
+          disabled: !discountCode.trim(),
+        }}
+        secondaryActions={[
+          {
+            content: 'Skip',
+            onAction: () => {
+              setDiscountModalOpen(false);
+              setDiscountCode("");
+            },
+          },
+        ]}
+      >
+        <Modal.Section>
+          <BlockStack gap="400">
+            <Text as="p" variant="bodyMd">
+              Enter your discount code below to apply special pricing to your subscription.
+            </Text>
+            <TextField
+              label="Discount Code"
+              value={discountCode}
+              onChange={setDiscountCode}
+              placeholder="Enter discount code"
+              autoComplete="off"
+            />
+          </BlockStack>
+        </Modal.Section>
+      </Modal>
     </Page>
   );
 }
