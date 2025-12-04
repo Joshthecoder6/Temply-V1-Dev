@@ -338,6 +338,78 @@ export default function AIGenerator() {
         }
     }, [currentSection, currentPrompt, navigate]);
 
+    // Parse Liquid code and replace variables with mock data
+    const parseLiquidCode = useCallback((liquidCode: string): string => {
+        try {
+            // Extract schema from liquidCode
+            const schemaMatch = liquidCode.match(/{% schema %}([\s\S]*?){% endschema %}/);
+            if (!schemaMatch) {
+                return liquidCode;
+            }
+
+            const schema = JSON.parse(schemaMatch[1]);
+            const mockData: Record<string, any> = {
+                section: {
+                    id: "preview-123",
+                    settings: {},
+                },
+            };
+
+            // Build mock settings from schema defaults
+            if (schema.settings && Array.isArray(schema.settings)) {
+                schema.settings.forEach((setting: any) => {
+                    if (setting.id) {
+                        mockData.section.settings[setting.id] = setting.default || getDefaultValueForType(setting.type);
+                    }
+                });
+            }
+
+            // Replace Liquid variables
+            let processedCode = liquidCode;
+
+            // Replace {{ section.settings.* }} variables
+            processedCode = processedCode.replace(
+                /\{\{\s*section\.settings\.(\w+)\s*\}\}/g,
+                (match, settingId) => {
+                    return mockData.section.settings[settingId] || match;
+                }
+            );
+
+            // Replace {{ section.id }}
+            processedCode = processedCode.replace(/\{\{\s*section\.id\s*\}\}/g, mockData.section.id);
+
+            return processedCode;
+        } catch (error) {
+            console.error("Error parsing Liquid code:", error);
+            return liquidCode;
+        }
+    }, []);
+
+    // Get default value for setting type
+    const getDefaultValueForType = (type: string): any => {
+        switch (type) {
+            case "text":
+            case "textarea":
+            case "richtext":
+                return "Sample Text";
+            case "number":
+            case "range":
+                return 50;
+            case "color":
+                return "#000000";
+            case "color_background":
+                return "linear-gradient(135deg, #667eea 0%, #764ba2 100%)";
+            case "image_picker":
+                return "https://via.placeholder.com/400x300";
+            case "url":
+                return "#";
+            case "checkbox":
+                return true;
+            default:
+                return "";
+        }
+    };
+
     const renderPreview = () => {
         if (!currentSection) {
             return (
@@ -360,6 +432,16 @@ export default function AIGenerator() {
             );
         }
 
+        // Use liquidCode if available, otherwise fall back to htmlCode
+        let htmlContent = currentSection.htmlCode;
+        if (currentSection.liquidCode) {
+            const processedLiquid = parseLiquidCode(currentSection.liquidCode);
+            // Extract HTML from processed Liquid (remove schema and script tags for preview)
+            htmlContent = processedLiquid
+                .replace(/{% schema %}[\s\S]*?{% endschema %}/g, "")
+                .replace(/<script[\s\S]*?<\/script>/g, "");
+        }
+
         const combinedCode = `
       <!DOCTYPE html>
       <html>
@@ -376,7 +458,7 @@ export default function AIGenerator() {
           </style>
         </head>
         <body>
-          ${currentSection.htmlCode}
+          ${htmlContent}
           ${currentSection.jsCode ? `<script>${currentSection.jsCode}</script>` : ""}
         </body>
       </html>
