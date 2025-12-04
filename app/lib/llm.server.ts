@@ -356,6 +356,45 @@ function extractTextFromTextFile(dataUrl: string): string {
 }
 
 /**
+ * Retry wrapper for API calls with exponential backoff
+ */
+async function retryWithBackoff<T>(
+  fn: () => Promise<T>,
+  maxRetries: number = 3,
+  baseDelay: number = 1000
+): Promise<T> {
+  let lastError: Error | null = null;
+
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      return await fn();
+    } catch (error: any) {
+      lastError = error;
+
+      // Check if error is retryable (503, 500, 429, network errors)
+      const isRetryable =
+        error?.status === 503 ||
+        error?.status === 500 ||
+        error?.status === 429 ||
+        error?.code === 'ECONNRESET' ||
+        error?.code === 'ETIMEDOUT';
+
+      if (!isRetryable || attempt === maxRetries) {
+        throw error;
+      }
+
+      // Calculate delay with exponential backoff
+      const delay = baseDelay * Math.pow(2, attempt);
+      console.log(`[X.AI] Retry attempt ${attempt + 1}/${maxRetries} after ${delay}ms due to: ${error?.message || error}`);
+
+      await new Promise(resolve => setTimeout(resolve, delay));
+    }
+  }
+
+  throw lastError || new Error('Max retries exceeded');
+}
+
+/**
  * Generate a section without streaming (simpler for testing)
  */
 export async function generateSection(
@@ -420,15 +459,17 @@ export async function generateSection(
       };
     }));
 
-    const completion = await openai.chat.completions.create({
-      model: hasImages ? 'grok-vision-beta' : (process.env.XAI_MODEL || 'grok-4-1-fast'),
-      messages: [
-        { role: 'system', content: SYSTEM_PROMPT },
-        ...processedMessages,
-      ] as any,
-      temperature: parseFloat(process.env.XAI_TEMPERATURE || '0.7'),
-      max_tokens: parseInt(process.env.XAI_MAX_TOKENS || '8000'),
-      // Note: X.AI doesn't support response_format, so we parse JSON manually
+    const completion = await retryWithBackoff(async () => {
+      return await openai.chat.completions.create({
+        model: hasImages ? 'grok-vision-beta' : (process.env.XAI_MODEL || 'grok-4-1-fast'),
+        messages: [
+          { role: 'system', content: SYSTEM_PROMPT },
+          ...processedMessages,
+        ] as any,
+        temperature: parseFloat(process.env.XAI_TEMPERATURE || '0.7'),
+        max_tokens: parseInt(process.env.XAI_MAX_TOKENS || '8000'),
+        // Note: X.AI doesn't support response_format, so we parse JSON manually
+      });
     });
 
     const content = completion.choices[0]?.message?.content || '';
