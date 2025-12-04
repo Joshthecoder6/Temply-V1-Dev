@@ -233,18 +233,20 @@ export default function AIGenerator() {
             });
 
             if (!response.ok) {
-                // Try to get error message from response
+                // Read response body once as text, then try to parse as JSON
+                const responseText = await response.text();
                 let errorMessage = `API error: ${response.status} ${response.statusText}`;
+
                 try {
-                    const errorData = await response.json();
+                    const errorData = JSON.parse(responseText);
                     if (errorData.error) {
                         errorMessage = errorData.error;
                     }
                 } catch {
-                    // Response is not JSON, use status text
-                    const text = await response.text();
-                    console.error("Non-JSON error response:", text.substring(0, 200));
+                    // Response is not JSON, log the text
+                    console.error("Non-JSON error response:", responseText.substring(0, 200));
                 }
+
                 throw new Error(errorMessage);
             }
 
