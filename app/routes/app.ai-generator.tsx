@@ -232,6 +232,22 @@ export default function AIGenerator() {
                 }),
             });
 
+            if (!response.ok) {
+                // Try to get error message from response
+                let errorMessage = `API error: ${response.status} ${response.statusText}`;
+                try {
+                    const errorData = await response.json();
+                    if (errorData.error) {
+                        errorMessage = errorData.error;
+                    }
+                } catch {
+                    // Response is not JSON, use status text
+                    const text = await response.text();
+                    console.error("Non-JSON error response:", text.substring(0, 200));
+                }
+                throw new Error(errorMessage);
+            }
+
             const data = await response.json();
 
             if (data.error) {

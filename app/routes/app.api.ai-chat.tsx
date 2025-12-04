@@ -7,6 +7,17 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     const { session } = await authenticate.admin(request);
     const { shop } = session;
 
+    // Validate XAI_API_KEY
+    if (!process.env.XAI_API_KEY) {
+        console.error('❌ XAI_API_KEY is not configured');
+        return new Response(JSON.stringify({
+            error: "X.AI API key is missing. Please add XAI_API_KEY to your .env file. Get your API key from https://console.x.ai"
+        }), {
+            status: 500,
+            headers: { "Content-Type": "application/json" }
+        });
+    }
+
     try {
         const body = await request.json();
         const { messages } = body as { messages: ChatMessage[] };

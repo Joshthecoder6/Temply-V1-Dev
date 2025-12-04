@@ -1,5 +1,11 @@
 import OpenAI from 'openai';
 
+// Validate XAI_API_KEY exists
+if (!process.env.XAI_API_KEY) {
+  console.error('❌ XAI_API_KEY is missing! Please add it to your .env file.');
+  console.error('Get your API key from: https://console.x.ai');
+}
+
 // Initialize X.AI client (OpenAI SDK compatible)
 const openai = new OpenAI({
   apiKey: process.env.XAI_API_KEY || '',
@@ -277,13 +283,13 @@ export async function generateSectionStream(
 ) {
   try {
     const stream = await openai.chat.completions.create({
-      model: process.env.XAI_MODEL || 'grok-beta',
+      model: process.env.XAI_MODEL || 'grok-4-1-fast',
       messages: [
         { role: 'system', content: SYSTEM_PROMPT },
         ...messages,
       ],
       temperature: parseFloat(process.env.XAI_TEMPERATURE || '0.7'),
-      max_tokens: parseInt(process.env.XAI_MAX_TOKENS || '2000'),
+      max_tokens: parseInt(process.env.XAI_MAX_TOKENS || '8000'),
       stream: true,
     });
 
@@ -415,13 +421,13 @@ export async function generateSection(
     }));
 
     const completion = await openai.chat.completions.create({
-      model: hasImages ? 'grok-vision-beta' : (process.env.XAI_MODEL || 'grok-beta'),
+      model: hasImages ? 'grok-vision-beta' : (process.env.XAI_MODEL || 'grok-4-1-fast'),
       messages: [
         { role: 'system', content: SYSTEM_PROMPT },
         ...processedMessages,
       ] as any,
       temperature: parseFloat(process.env.XAI_TEMPERATURE || '0.7'),
-      max_tokens: parseInt(process.env.XAI_MAX_TOKENS || '4000'), // Increased from 2000
+      max_tokens: parseInt(process.env.XAI_MAX_TOKENS || '8000'),
       // Note: X.AI doesn't support response_format, so we parse JSON manually
     });
 

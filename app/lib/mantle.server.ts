@@ -364,8 +364,8 @@ export async function createSubscriptionCheckout(
     }
 
     if (discountCode) {
-      requestBody.discount = discountCode;  // Add discount code if provided (try 'discount' instead of 'discountCode')
-      console.log('Applying discount code:', discountCode);
+      requestBody.discountId = discountCode;  // Mantle API expects 'discountId' parameter
+      console.log('Applying discount ID:', discountCode);
     }
 
     const endpoint = `${MANTLE_API_BASE_URL}/subscriptions`;

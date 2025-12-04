@@ -9,14 +9,15 @@ Add these to your `.env` file:
 ```bash
 # X.AI Configuration
 XAI_API_KEY=your-xai-api-key-here
-XAI_MODEL=grok-beta
+XAI_MODEL=grok-4-1-fast
 XAI_TEMPERATURE=0.7
-XAI_MAX_TOKENS=2000
+XAI_MAX_TOKENS=8000
 ```
 
 ## Model Options
 
-- **grok-beta** (recommended for text-only, powerful and cost-effective)
+- **grok-4-1-fast** (recommended for text-only, fast and powerful)
+- **grok-beta** (alternative text model)
 - **grok-vision-beta** (automatically used when images are attached, supports vision capabilities)
 
 ## Base Prompt Configuration
