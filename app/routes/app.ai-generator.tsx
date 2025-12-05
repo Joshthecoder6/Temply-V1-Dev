@@ -425,16 +425,37 @@ export default function AIGenerator() {
             // Replace Liquid variables
             let processedCode = liquidCode;
 
-            // Replace {{ section.settings.* }} variables
+            // Remove Liquid control flow tags (if, unless, for, etc.)
+            processedCode = processedCode.replace(/{%\s*if\s+.*?%}/g, '');
+            processedCode = processedCode.replace(/{%\s*unless\s+.*?%}/g, '');
+            processedCode = processedCode.replace(/{%\s*elsif\s+.*?%}/g, '');
+            processedCode = processedCode.replace(/{%\s*else\s*%}/g, '');
+            processedCode = processedCode.replace(/{%\s*endif\s*%}/g, '');
+            processedCode = processedCode.replace(/{%\s*endunless\s*%}/g, '');
+            processedCode = processedCode.replace(/{%\s*for\s+.*?%}/g, '');
+            processedCode = processedCode.replace(/{%\s*endfor\s*%}/g, '');
+            processedCode = processedCode.replace(/{%\s*assign\s+.*?%}/g, '');
+            processedCode = processedCode.replace(/{%\s*capture\s+.*?%}/g, '');
+            processedCode = processedCode.replace(/{%\s*endcapture\s*%}/g, '');
+
+            // Replace {{ section.settings.* }} with values (including conditions and filters)
+            // Match any {{ section.settings.id ... }} pattern
             processedCode = processedCode.replace(
-                /\{\{\s*section\.settings\.(\w+)\s*\}\}/g,
+                /\{\{\s*section\.settings\.(\w+)[^}]*\}\}/g,
                 (match, settingId) => {
-                    return mockData.section.settings[settingId] || match;
+                    const value = mockData.section.settings[settingId];
+                    if (value === undefined || value === null || value === '') {
+                        return ''; // Don't show empty values
+                    }
+                    return String(value);
                 }
             );
 
             // Replace {{ section.id }}
             processedCode = processedCode.replace(/\{\{\s*section\.id\s*\}\}/g, mockData.section.id);
+
+            // Remove any remaining Liquid variables we haven't handled
+            processedCode = processedCode.replace(/\{\{[^}]+\}\}/g, '');
 
             return processedCode;
         } catch (error) {
@@ -447,9 +468,10 @@ export default function AIGenerator() {
     const getDefaultValueForType = (type: string): any => {
         switch (type) {
             case "text":
+                return "Flash Sale Ends In";
             case "textarea":
             case "richtext":
-                return "Sample Text";
+                return "This stunning, fully responsive sales countdown timer features large animated numbers with flip transitions, hover effects, customizable colors/gradients, and an expiry message. Set the end date/time in ISO format, toggle days display, and style via the schema settings. Production-ready with app embed check, perfect for flash sales or limited-time offers. Mobile-optimized with clamped sizing and smooth animations.";
             case "number":
             case "range":
                 return 50;
@@ -523,7 +545,7 @@ export default function AIGenerator() {
     `;
 
         return (
-            <div style={{ padding: "16px", background: "#F6F6F7", minHeight: "400px" }}>
+            <div style={{ padding: "16px", background: "#F6F6F7", minHeight: "600px" }}>
                 <BlockStack gap="300">
                     <InlineStack gap="200">
                         <Button
@@ -551,7 +573,7 @@ export default function AIGenerator() {
                             srcDoc={combinedCode}
                             style={{
                                 width: "100%",
-                                height: "500px",
+                                minHeight: viewMode === "desktop" ? "600px" : "500px",
                                 border: "1px solid #E1E3E5",
                                 borderRadius: "8px",
                                 background: "white",
