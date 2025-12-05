@@ -122,38 +122,44 @@ export default function AIGenerator() {
 
             if (!response.ok) {
                 const errorText = await response.text();
-                console.error('Failed to load conversation:', response.status, errorText);
+                console.error('❌ Failed to load conversation:', response.status, errorText);
                 shopify.toast.show('Failed to load conversation', { isError: true });
                 return;
             }
 
             const data = await response.json();
-            console.log('📂 Conversation loaded:', data);
+            console.log('📂 Conversation loaded - Full data:', data);
+            console.log('📂 Messages count:', data.conversation?.messages?.length);
+            console.log('📂 Messages:', data.conversation?.messages);
 
-            if (data.success && data.conversation) {
-                setMessages(data.conversation.messages);
+            if (data.success && data.conversation && data.conversation.messages) {
+                const messages = data.conversation.messages;
+
+                console.log('✅ Setting messages:', messages);
+                setMessages(messages);
                 setCurrentConversationId(id);
 
                 // Try to restore the last generated section from messages
-                const lastAssistantMessage = [...data.conversation.messages]
+                const lastAssistantMessage = [...messages]
                     .reverse()
-                    .find((msg: any) => msg.role === 'assistant');
+                    .find((msg: any) => msg.role === 'assistant' && msg.section);
 
                 if (lastAssistantMessage?.section) {
-                    console.log('🔄 Restoring section from conversation');
+                    console.log('🔄 Restoring section from conversation:', lastAssistantMessage.section);
                     setCurrentSection(lastAssistantMessage.section);
                 } else {
+                    console.log('ℹ️ No section found in messages');
                     setCurrentSection(null);
                 }
 
                 setShowHistoryDropdown(false);
                 shopify.toast.show('Conversation loaded successfully');
             } else {
-                console.error('Invalid response format:', data);
-                shopify.toast.show('Failed to load conversation', { isError: true });
+                console.error('❌ Invalid response format:', data);
+                shopify.toast.show('Failed to load conversation - invalid format', { isError: true });
             }
         } catch (error) {
-            console.error('Error loading conversation:', error);
+            console.error('❌ Error loading conversation:', error);
             shopify.toast.show('Failed to load conversation', { isError: true });
         }
     }, []);
