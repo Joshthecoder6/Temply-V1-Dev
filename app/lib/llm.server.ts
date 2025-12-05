@@ -628,7 +628,23 @@ export async function generateSection(
       console.log(`[X.AI] Successfully parsed section: ${section.sectionName}`);
       return section;
     } catch (parseError) {
-      console.error('[X.AI] Failed to parse response');
+      console.error('[X.AI] ❌ Failed to parse response');
+
+      // Show detailed error context
+      if (parseError instanceof Error && parseError.message.includes('position')) {
+        const match = parseError.message.match(/position (\d+)/);
+        if (match) {
+          const errorPos = parseInt(match[1]);
+          const contextStart = Math.max(0, errorPos - 100);
+          const contextEnd = Math.min(jsonString.length, errorPos + 100);
+
+          console.error(`[X.AI] Error at position ${errorPos}:`);
+          console.error(`[X.AI] Context before: "${jsonString.substring(contextStart, errorPos)}"`);
+          console.error(`[X.AI] Context after: "${jsonString.substring(errorPos, contextEnd)}"`);
+          console.error(`[X.AI] Character at error: ${JSON.stringify(jsonString[errorPos])}`);
+        }
+      }
+
       console.error('[X.AI] Response preview:', content.substring(0, 500));
       console.error('[X.AI] Parse error:', parseError);
       throw new Error(`Failed to parse section from X.AI response: ${parseError instanceof Error ? parseError.message : 'Unknown error'}`);
