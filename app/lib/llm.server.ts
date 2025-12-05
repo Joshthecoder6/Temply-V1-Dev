@@ -562,15 +562,67 @@ export async function generateSection(
         throw new Error('No valid JSON found in X.AI response');
       }
 
-      // Sanitize JSON: XAI sometimes includes unescaped control characters in HTML/CSS
-      // This replaces literal newlines, tabs, etc. with escaped versions
-      const sanitizedJSON = jsonString
-        .replace(/\r\n/g, '\\n')  // Windows line endings
-        .replace(/\n/g, '\\n')    // Unix line endings
-        .replace(/\r/g, '\\r')    // Carriage returns
-        .replace(/\t/g, '\\t');   // Tabs
+      // Robust JSON sanitization: XAI sometimes generates invalid JSON with unescaped characters
+      // We need to carefully escape control characters and quotes within string values
+      function sanitizeJSONString(str: string): string {
+        let result = '';
+        let inString = false;
+        let prevChar = '';
 
-      console.log(`[X.AI] Sanitized JSON (control chars escaped)`);
+        for (let i = 0; i < str.length; i++) {
+          const char = str[i];
+
+          // Track if we're inside a string value
+          if (char === '"' && prevChar !== '\\') {
+            inString = !inString;
+            result += char;
+            prevChar = char;
+            continue;
+          }
+
+          // If we're inside a string, escape special characters
+          if (inString) {
+            switch (char) {
+              case '\n':
+                result += '\\n';
+                break;
+              case '\r':
+                result += '\\r';
+                break;
+              case '\t':
+                result += '\\t';
+                break;
+              case '\b':
+                result += '\\b';
+                break;
+              case '\f':
+                result += '\\f';
+                break;
+              case '\\':
+                // Only escape if not already part of an escape sequence
+                if (str[i + 1] && 'nrtbf"\\'.includes(str[i + 1])) {
+                  result += char;
+                } else {
+                  result += '\\\\';
+                }
+                break;
+              default:
+                result += char;
+            }
+          } else {
+            // Outside string, keep as is
+            result += char;
+          }
+
+          prevChar = char;
+        }
+
+        return result;
+      }
+
+      console.log(`[X.AI] Sanitizing JSON string...`);
+      const sanitizedJSON = sanitizeJSONString(jsonString);
+      console.log(`[X.AI] Sanitized JSON (length: ${sanitizedJSON.length})`);
 
       const section = JSON.parse(sanitizedJSON) as GeneratedSection;
       console.log(`[X.AI] Successfully parsed section: ${section.sectionName}`);
