@@ -562,7 +562,17 @@ export async function generateSection(
         throw new Error('No valid JSON found in X.AI response');
       }
 
-      const section = JSON.parse(jsonString) as GeneratedSection;
+      // Sanitize JSON: XAI sometimes includes unescaped control characters in HTML/CSS
+      // This replaces literal newlines, tabs, etc. with escaped versions
+      const sanitizedJSON = jsonString
+        .replace(/\r\n/g, '\\n')  // Windows line endings
+        .replace(/\n/g, '\\n')    // Unix line endings
+        .replace(/\r/g, '\\r')    // Carriage returns
+        .replace(/\t/g, '\\t');   // Tabs
+
+      console.log(`[X.AI] Sanitized JSON (control chars escaped)`);
+
+      const section = JSON.parse(sanitizedJSON) as GeneratedSection;
       console.log(`[X.AI] Successfully parsed section: ${section.sectionName}`);
       return section;
     } catch (parseError) {
