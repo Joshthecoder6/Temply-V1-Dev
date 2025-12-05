@@ -60,7 +60,6 @@ export default function AIGenerator() {
     const [inputValue, setInputValue] = useState("");
     const [isLoading, setIsLoading] = useState(false);
     const [isApplying, setIsApplying] = useState(false);
-    const [shouldAutoScroll, setShouldAutoScroll] = useState(true);
     const [currentSection, setCurrentSection] = useState<GeneratedSection | null>(null);
     const [currentPrompt, setCurrentPrompt] = useState("");
     const [selectedTab, setSelectedTab] = useState(0);
@@ -76,14 +75,12 @@ export default function AIGenerator() {
     const [chatName, setChatName] = useState("");
 
     const messagesEndRef = useRef<HTMLDivElement>(null);
+    const chatContainerRef = useRef<HTMLDivElement>(null);
 
-    useEffect(() => {
-        // Only auto-scroll when shouldAutoScroll is true (i.e., when sending new messages)
-        // Don't auto-scroll when loading old conversations
-        if (shouldAutoScroll) {
-            messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-        }
-    }, [messages, shouldAutoScroll]);
+    // Only auto-scroll when user sends a new message
+    const scrollToBottom = useCallback(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    }, []);
 
     // Load chat history on mount
     useEffect(() => {
@@ -170,9 +167,6 @@ export default function AIGenerator() {
                 setMessages(messages);
                 setCurrentConversationId(id);
 
-                // Disable auto-scroll when loading old conversations
-                setShouldAutoScroll(false);
-
                 // Set sectionId from conversation for tracking
                 if (data.conversation.sectionId) {
                     console.log('🔄 Setting sectionId from conversation:', data.conversation.sectionId);
@@ -236,9 +230,6 @@ export default function AIGenerator() {
         setChatName("");
         setAttachedFiles([]);
         setShowHistoryDropdown(false);
-
-        // Enable auto-scroll for new chats
-        setShouldAutoScroll(true);
     }, []);
 
     const handleClose = useCallback(() => {
@@ -309,8 +300,8 @@ export default function AIGenerator() {
         setAttachedFiles([]);
         setIsLoading(true);
 
-        // Enable auto-scroll when sending new messages
-        setShouldAutoScroll(true);
+        // Scroll to bottom when user sends message
+        setTimeout(() => scrollToBottom(), 100);
 
         // Add a streaming message placeholder
         const streamingMessage: ChatMessage = {
@@ -467,7 +458,7 @@ export default function AIGenerator() {
         } finally {
             setIsLoading(false);
         }
-    }, [inputValue, isLoading, messages, attachedFiles, chatName, currentConversationId, currentSectionId, shopify, loadChatHistory]);
+    }, [inputValue, isLoading, messages, attachedFiles, chatName, currentConversationId, currentSectionId, shopify, loadChatHistory, scrollToBottom]);
 
     const handleApply = useCallback(async () => {
         if (!currentSection) return;
