@@ -984,223 +984,232 @@ export default function AIGenerator() {
                     height: "100%",
                     background: "#F6F6F7",
                 }}>
-                    {/* Messages */}
+                    {/* Flex wrapper to align content to bottom when short */}
                     <div style={{
-                        padding: "20px",
+                        minHeight: "100%",
+                        display: "flex",
+                        flexDirection: "column",
+                        justifyContent: "flex-end",
                     }}>
-                        <BlockStack gap="400">
-                            {messages.map((message, index) => (
-                                <div
-                                    key={index}
-                                    style={{
-                                        maxWidth: message.role === "user" ? "85%" : "100%",
-                                        marginLeft: message.role === "user" ? "auto" : "0",
-                                    }}
-                                >
-                                    <Card>
-                                        <BlockStack gap="200">
-                                            <InlineStack gap="200" blockAlign="center">
-                                                {message.role === "assistant" && (
-                                                    <Badge tone="success">Temply AI</Badge>
-                                                )}
-                                                {message.role === "user" && (
-                                                    <Badge>You</Badge>
-                                                )}
-                                            </InlineStack>
-                                            <div style={{ whiteSpace: "pre-wrap" }}>
-                                                <Text as="p" variant="bodyMd">
-                                                    {message.content}
-                                                </Text>
-                                            </div>
-                                            {message.attachments && message.attachments.length > 0 && (
-                                                <div style={{ marginTop: "8px" }}>
-                                                    <BlockStack gap="200">
-                                                        {message.attachments.map((file, fileIndex) => {
-                                                            const isImage = file.type.startsWith('image/');
-                                                            const isPDF = file.type === 'application/pdf';
-
-                                                            if (isImage) {
-                                                                return (
-                                                                    <div key={fileIndex} style={{
-                                                                        maxWidth: "200px",
-                                                                        border: "1px solid #E1E3E5",
-                                                                        borderRadius: "8px",
-                                                                        overflow: "hidden",
-                                                                    }}>
-                                                                        <img
-                                                                            src={file.dataUrl}
-                                                                            alt={file.name}
-                                                                            style={{
-                                                                                width: "100%",
-                                                                                height: "auto",
-                                                                                display: "block",
-                                                                            }}
-                                                                        />
-                                                                    </div>
-                                                                );
-                                                            } else {
-                                                                return (
-                                                                    <div key={fileIndex} style={{
-                                                                        padding: "8px 12px",
-                                                                        border: "1px solid #E1E3E5",
-                                                                        borderRadius: "8px",
-                                                                        background: "#F6F6F7",
-                                                                        display: "flex",
-                                                                        alignItems: "center",
-                                                                        gap: "8px",
-                                                                    }}>
-                                                                        <span style={{ fontSize: "24px" }}>
-                                                                            {isPDF ? '📄' : '📝'}
-                                                                        </span>
-                                                                        <Text as="span" variant="bodySm">
-                                                                            {file.name}
-                                                                        </Text>
-                                                                    </div>
-                                                                );
-                                                            }
-                                                        })}
-                                                    </BlockStack>
-                                                </div>
-                                            )}
-                                        </BlockStack>
-                                    </Card>
-                                </div>
-                            ))}
-                            {isLoading && (
-                                <Card>
-                                    <InlineStack gap="200" blockAlign="center">
-                                        <Spinner size="small" />
-                                        <Text as="p" variant="bodyMd" tone="subdued">
-                                            Temply AI is generating your section...
-                                        </Text>
-                                    </InlineStack>
-                                </Card>
-                            )}
-                            <div ref={messagesEndRef} />
-                        </BlockStack>
-                    </div>
-
-                    {/* Input - Now part of scrollable content */}
-                    <div style={{
-                        padding: "16px",
-                        background: "white",
-                        borderTop: "1px solid #E1E3E5",
-                    }}>
-                        <BlockStack gap="200">
-                            {/* Chat/Section Name Input */}
-                            <TextField
-                                label="Section/Chat Name"
-                                value={chatName}
-                                onChange={setChatName}
-                                placeholder="e.g., Product Carousel, Hero Banner..."
-                                autoComplete="off"
-                                helpText="This name will be used for the section and saved in chat history"
-                            />
-
-                            {/* File Attachments Preview */}
-                            {attachedFiles.length > 0 && (
-                                <div style={{
-                                    padding: "8px",
-                                    background: "#F6F6F7",
-                                    borderRadius: "8px",
-                                }}>
-                                    <BlockStack gap="200">
-                                        <Text as="p" variant="bodySm" fontWeight="semibold">
-                                            Attached files:
-                                        </Text>
-                                        {attachedFiles.map((file, index) => {
-                                            const isImage = file.type.startsWith('image/');
-                                            const isPDF = file.type === 'application/pdf';
-
-                                            return (
-                                                <div key={index} style={{
-                                                    display: "flex",
-                                                    alignItems: "center",
-                                                    gap: "8px",
-                                                    padding: "8px",
-                                                    background: "white",
-                                                    borderRadius: "4px",
-                                                }}>
-                                                    {isImage ? (
-                                                        <img
-                                                            src={file.dataUrl}
-                                                            alt={file.name}
-                                                            style={{
-                                                                width: "40px",
-                                                                height: "40px",
-                                                                objectFit: "cover",
-                                                                borderRadius: "4px",
-                                                            }}
-                                                        />
-                                                    ) : (
-                                                        <span style={{ fontSize: "32px" }}>
-                                                            {isPDF ? '📄' : '📝'}
-                                                        </span>
+                        {/* Messages */}
+                        <div style={{
+                            padding: "20px",
+                            flex: "0 1 auto",
+                        }}>
+                            <BlockStack gap="400">
+                                {messages.map((message, index) => (
+                                    <div
+                                        key={index}
+                                        style={{
+                                            maxWidth: message.role === "user" ? "85%" : "100%",
+                                            marginLeft: message.role === "user" ? "auto" : "0",
+                                        }}
+                                    >
+                                        <Card>
+                                            <BlockStack gap="200">
+                                                <InlineStack gap="200" blockAlign="center">
+                                                    {message.role === "assistant" && (
+                                                        <Badge tone="success">Temply AI</Badge>
                                                     )}
-                                                    <div style={{ flex: 1, minWidth: 0 }}>
-                                                        <Text as="p" variant="bodySm" truncate>
-                                                            {file.name}
-                                                        </Text>
-                                                        <Text as="p" variant="bodySm" tone="subdued">
-                                                            {(file.size / 1024).toFixed(1)} KB
-                                                        </Text>
-                                                    </div>
-                                                    <Button
-                                                        size="slim"
-                                                        icon={DeleteIcon}
-                                                        onClick={() => handleRemoveFile(index)}
-                                                        accessibilityLabel="Remove file"
-                                                    />
+                                                    {message.role === "user" && (
+                                                        <Badge>You</Badge>
+                                                    )}
+                                                </InlineStack>
+                                                <div style={{ whiteSpace: "pre-wrap" }}>
+                                                    <Text as="p" variant="bodyMd">
+                                                        {message.content}
+                                                    </Text>
                                                 </div>
-                                            );
-                                        })}
-                                    </BlockStack>
-                                </div>
-                            )}
+                                                {message.attachments && message.attachments.length > 0 && (
+                                                    <div style={{ marginTop: "8px" }}>
+                                                        <BlockStack gap="200">
+                                                            {message.attachments.map((file, fileIndex) => {
+                                                                const isImage = file.type.startsWith('image/');
+                                                                const isPDF = file.type === 'application/pdf';
 
-                            <div style={{ display: "flex", gap: "8px" }}>
-                                <input
-                                    ref={fileInputRef}
-                                    type="file"
-                                    accept="image/*,.pdf,.txt"
-                                    onChange={handleFileSelect}
-                                    style={{ display: "none" }}
+                                                                if (isImage) {
+                                                                    return (
+                                                                        <div key={fileIndex} style={{
+                                                                            maxWidth: "200px",
+                                                                            border: "1px solid #E1E3E5",
+                                                                            borderRadius: "8px",
+                                                                            overflow: "hidden",
+                                                                        }}>
+                                                                            <img
+                                                                                src={file.dataUrl}
+                                                                                alt={file.name}
+                                                                                style={{
+                                                                                    width: "100%",
+                                                                                    height: "auto",
+                                                                                    display: "block",
+                                                                                }}
+                                                                            />
+                                                                        </div>
+                                                                    );
+                                                                } else {
+                                                                    return (
+                                                                        <div key={fileIndex} style={{
+                                                                            padding: "8px 12px",
+                                                                            border: "1px solid #E1E3E5",
+                                                                            borderRadius: "8px",
+                                                                            background: "#F6F6F7",
+                                                                            display: "flex",
+                                                                            alignItems: "center",
+                                                                            gap: "8px",
+                                                                        }}>
+                                                                            <span style={{ fontSize: "24px" }}>
+                                                                                {isPDF ? '📄' : '📝'}
+                                                                            </span>
+                                                                            <Text as="span" variant="bodySm">
+                                                                                {file.name}
+                                                                            </Text>
+                                                                        </div>
+                                                                    );
+                                                                }
+                                                            })}
+                                                        </BlockStack>
+                                                    </div>
+                                                )}
+                                            </BlockStack>
+                                        </Card>
+                                    </div>
+                                ))}
+                                {isLoading && (
+                                    <Card>
+                                        <InlineStack gap="200" blockAlign="center">
+                                            <Spinner size="small" />
+                                            <Text as="p" variant="bodyMd" tone="subdued">
+                                                Temply AI is generating your section...
+                                            </Text>
+                                        </InlineStack>
+                                    </Card>
+                                )}
+                                <div ref={messagesEndRef} />
+                            </BlockStack>
+                        </div>
+
+                        {/* Input - Now part of scrollable content */}
+                        <div style={{
+                            padding: "16px",
+                            background: "white",
+                            borderTop: "1px solid #E1E3E5",
+                        }}>
+                            <BlockStack gap="200">
+                                {/* Chat/Section Name Input */}
+                                <TextField
+                                    label="Section/Chat Name"
+                                    value={chatName}
+                                    onChange={setChatName}
+                                    placeholder="e.g., Product Carousel, Hero Banner..."
+                                    autoComplete="off"
+                                    helpText="This name will be used for the section and saved in chat history"
                                 />
-                                <Button
-                                    size="large"
-                                    icon={AttachmentIcon}
-                                    onClick={() => fileInputRef.current?.click()}
-                                    disabled={isLoading}
-                                    accessibilityLabel="Attach file"
-                                />
-                                <div style={{ flex: 1 }}>
-                                    <TextField
-                                        label=""
-                                        labelHidden
-                                        value={inputValue}
-                                        onChange={setInputValue}
-                                        placeholder="Describe the section you want to create..."
-                                        multiline={3}
-                                        autoComplete="off"
-                                        disabled={isLoading}
+
+                                {/* File Attachments Preview */}
+                                {attachedFiles.length > 0 && (
+                                    <div style={{
+                                        padding: "8px",
+                                        background: "#F6F6F7",
+                                        borderRadius: "8px",
+                                    }}>
+                                        <BlockStack gap="200">
+                                            <Text as="p" variant="bodySm" fontWeight="semibold">
+                                                Attached files:
+                                            </Text>
+                                            {attachedFiles.map((file, index) => {
+                                                const isImage = file.type.startsWith('image/');
+                                                const isPDF = file.type === 'application/pdf';
+
+                                                return (
+                                                    <div key={index} style={{
+                                                        display: "flex",
+                                                        alignItems: "center",
+                                                        gap: "8px",
+                                                        padding: "8px",
+                                                        background: "white",
+                                                        borderRadius: "4px",
+                                                    }}>
+                                                        {isImage ? (
+                                                            <img
+                                                                src={file.dataUrl}
+                                                                alt={file.name}
+                                                                style={{
+                                                                    width: "40px",
+                                                                    height: "40px",
+                                                                    objectFit: "cover",
+                                                                    borderRadius: "4px",
+                                                                }}
+                                                            />
+                                                        ) : (
+                                                            <span style={{ fontSize: "32px" }}>
+                                                                {isPDF ? '📄' : '📝'}
+                                                            </span>
+                                                        )}
+                                                        <div style={{ flex: 1, minWidth: 0 }}>
+                                                            <Text as="p" variant="bodySm" truncate>
+                                                                {file.name}
+                                                            </Text>
+                                                            <Text as="p" variant="bodySm" tone="subdued">
+                                                                {(file.size / 1024).toFixed(1)} KB
+                                                            </Text>
+                                                        </div>
+                                                        <Button
+                                                            size="slim"
+                                                            icon={DeleteIcon}
+                                                            onClick={() => handleRemoveFile(index)}
+                                                            accessibilityLabel="Remove file"
+                                                        />
+                                                    </div>
+                                                );
+                                            })}
+                                        </BlockStack>
+                                    </div>
+                                )}
+
+                                <div style={{ display: "flex", gap: "8px" }}>
+                                    <input
+                                        ref={fileInputRef}
+                                        type="file"
+                                        accept="image/*,.pdf,.txt"
+                                        onChange={handleFileSelect}
+                                        style={{ display: "none" }}
                                     />
+                                    <Button
+                                        size="large"
+                                        icon={AttachmentIcon}
+                                        onClick={() => fileInputRef.current?.click()}
+                                        disabled={isLoading}
+                                        accessibilityLabel="Attach file"
+                                    />
+                                    <div style={{ flex: 1 }}>
+                                        <TextField
+                                            label=""
+                                            labelHidden
+                                            value={inputValue}
+                                            onChange={setInputValue}
+                                            placeholder="Describe the section you want to create..."
+                                            multiline={3}
+                                            autoComplete="off"
+                                            disabled={isLoading}
+                                        />
+                                    </div>
+                                    <Button
+                                        variant="primary"
+                                        size="large"
+                                        onClick={handleSendMessage}
+                                        loading={isLoading}
+                                        disabled={!inputValue.trim() && attachedFiles.length === 0}
+                                        icon={SendIcon}
+                                    >
+                                        Send
+                                    </Button>
                                 </div>
-                                <Button
-                                    variant="primary"
-                                    size="large"
-                                    onClick={handleSendMessage}
-                                    loading={isLoading}
-                                    disabled={!inputValue.trim() && attachedFiles.length === 0}
-                                    icon={SendIcon}
-                                >
-                                    Send
-                                </Button>
-                            </div>
-                            <Text as="p" variant="bodySm" tone="subdued">
-                                💡 Attach images for visual reference to help Temply AI understand your needs.
-                            </Text>
-                        </BlockStack>
-                    </div>
+                                <Text as="p" variant="bodySm" tone="subdued">
+                                    💡 Attach images for visual reference to help Temply AI understand your needs.
+                                </Text>
+                            </BlockStack>
+                        </div>
+                    </div> {/* Close flex wrapper */}
                 </div>
 
                 {/* Preview Panel */}
