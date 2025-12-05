@@ -587,7 +587,7 @@ export default function AIGenerator() {
           <style>
             body {
               margin: 0;
-              padding: 20px;
+              padding: ${viewMode === "desktop" ? "10px" : "20px"};
               font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             }
             ${currentSection.cssCode || ""}
@@ -601,7 +601,7 @@ export default function AIGenerator() {
     `;
 
         return (
-            <div style={{ padding: "16px", background: "#F6F6F7", minHeight: "600px" }}>
+            <div style={{ padding: viewMode === "desktop" ? "8px" : "16px", background: "#F6F6F7", minHeight: "600px" }}>
                 <BlockStack gap="300">
                     <InlineStack gap="200">
                         <Button
