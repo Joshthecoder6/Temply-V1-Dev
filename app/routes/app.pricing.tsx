@@ -45,13 +45,13 @@ export default function PricingPage() {
 }
 
 function PricingContent() {
-  // Subscribe/cancel functions from Mantle
   const { planIds, availablePlans } = useLoaderData<typeof loader>();
   const { subscribe, customer, plans } = useMantle();
   const [yearlyPricing, setYearlyPricing] = useState(false);
   const [discountModalOpen, setDiscountModalOpen] = useState(false);
   const [discountCode, setDiscountCode] = useState("");
-  const [validatedDiscountCode, setValidatedDiscountCode] = useState<string | undefined>(undefined);
+  const [validatedDiscountId, setValidatedDiscountId] = useState<string | undefined>(undefined);
+  const [discountError, setDiscountError] = useState<string | undefined>(undefined);
   const fetcher = useFetcher<any>();
 
   useEffect(() => {
@@ -392,7 +392,7 @@ function PricingContent() {
                   <fetcher.Form action="/app/api/subscribe" method="post">
                     <input type="hidden" name="plan" value={yearlyPricing ? "beginner_yearly" : "beginner"} />
                     <input type="hidden" name="source" value="pricing" />
-                    {validatedDiscountCode && <input type="hidden" name="discount" value={validatedDiscountCode} />}
+                    {validatedDiscountId && <input type="hidden" name="discountId" value={validatedDiscountId} />}
                     <Button
                       variant="primary"
                       size="large"
@@ -613,7 +613,7 @@ function PricingContent() {
                   <fetcher.Form action="/app/api/subscribe" method="post">
                     <input type="hidden" name="plan" value={yearlyPricing ? "growth_yearly" : "growth"} />
                     <input type="hidden" name="source" value="pricing" />
-                    {validatedDiscountCode && <input type="hidden" name="discount" value={validatedDiscountCode} />}
+                    {validatedDiscountId && <input type="hidden" name="discountId" value={validatedDiscountId} />}
                     <Button
                       variant="primary"
                       size="large"
@@ -946,18 +946,41 @@ function PricingContent() {
         onClose={() => {
           setDiscountModalOpen(false);
           setDiscountCode("");
+          setDiscountError(undefined);
         }}
         title="Enter Discount Code"
         primaryAction={{
           content: 'Validate Code',
           onAction: () => {
-            // Save the discount code for use in subscription
-            if (discountCode.trim()) {
-              setValidatedDiscountCode(discountCode.trim());
-              console.log('Discount code validated:', discountCode.trim());
+            // Validate discount code against customer.discounts
+            setDiscountError(undefined);
+
+            if (!discountCode.trim()) {
+              setDiscountError("Please enter a discount code");
+              return;
             }
-            setDiscountModalOpen(false);
-            setDiscountCode("");
+
+            // Find matching discount in customer.discounts
+            const matchingDiscount = customer?.discounts?.find(
+              (discount: any) =>
+                discount.code?.toLowerCase() === discountCode.trim().toLowerCase() &&
+                discount.status === 'active'
+            );
+
+            if (matchingDiscount) {
+              setValidatedDiscountId(matchingDiscount.id);
+              console.log('Discount code validated:', {
+                code: discountCode.trim(),
+                id: matchingDiscount.id,
+                name: matchingDiscount.name,
+                type: matchingDiscount.type,
+                value: matchingDiscount.value
+              });
+              setDiscountModalOpen(false);
+              setDiscountCode("");
+            } else {
+              setDiscountError("Rabattcode ungültig oder nicht für diesen Plan gültig");
+            }
           },
           disabled: !discountCode.trim(),
         }}
@@ -967,6 +990,7 @@ function PricingContent() {
             onAction: () => {
               setDiscountModalOpen(false);
               setDiscountCode("");
+              setDiscountError(undefined);
             },
           },
         ]}
@@ -979,9 +1003,13 @@ function PricingContent() {
             <TextField
               label="Discount Code"
               value={discountCode}
-              onChange={setDiscountCode}
+              onChange={(value) => {
+                setDiscountCode(value);
+                setDiscountError(undefined); // Clear error on input
+              }}
               placeholder="Enter discount code"
               autoComplete="off"
+              error={discountError}
             />
           </BlockStack>
         </Modal.Section>
