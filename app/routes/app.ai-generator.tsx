@@ -223,8 +223,16 @@ export default function AIGenerator() {
         setAttachedFiles([]);
         setIsLoading(true);
 
+        // Add a streaming message placeholder
+        const streamingMessage: ChatMessage = {
+            role: "assistant",
+            content: "⏳ Generating section...",
+        };
+        setMessages((prev) => [...prev, streamingMessage]);
+
         try {
-            const response = await fetch("/app/api/ai-chat", {
+            // Use fetch to POST the message, then read the stream
+            const response = await fetch("/app/api/ai-chat-stream", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
@@ -233,7 +241,6 @@ export default function AIGenerator() {
             });
 
             if (!response.ok) {
-                // Read response body once as text, then try to parse as JSON
                 const responseText = await response.text();
                 let errorMessage = `API error: ${response.status} ${response.statusText}`;
 
@@ -243,27 +250,74 @@ export default function AIGenerator() {
                         errorMessage = errorData.error;
                     }
                 } catch {
-                    // Response is not JSON, log the text
                     console.error("Non-JSON error response:", responseText.substring(0, 200));
                 }
 
                 throw new Error(errorMessage);
             }
 
-            const data = await response.json();
+            // Read the SSE stream
+            const reader = response.body?.getReader();
+            const decoder = new TextDecoder();
+            let buffer = '';
+            let section: GeneratedSection | null = null;
 
-            if (data.error) {
-                throw new Error(data.error);
+            if (!reader) {
+                throw new Error('No reader available');
             }
 
-            const section = data.section as GeneratedSection;
+            while (true) {
+                const { done, value } = await reader.read();
+
+                if (done) break;
+
+                buffer += decoder.decode(value, { stream: true });
+                const lines = buffer.split('\n\n');
+                buffer = lines.pop() || '';
+
+                for (const line of lines) {
+                    if (line.startsWith('data: ')) {
+                        try {
+                            const data = JSON.parse(line.slice(6));
+
+                            if (data.type === 'chunk') {
+                                // Update streaming message with chunks (optional - could show token count)
+                                setMessages((prev) => {
+                                    const newMessages = [...prev];
+                                    newMessages[newMessages.length - 1] = {
+                                        role: "assistant",
+                                        content: "⏳ Generating section... (streaming)"
+                                    };
+                                    return newMessages;
+                                });
+                            } else if (data.type === 'complete') {
+                                // Final section received
+                                section = data.section;
+                            } else if (data.type === 'error') {
+                                throw new Error(data.error);
+                            }
+                        } catch (parseError) {
+                            console.error('Error parsing SSE data:', parseError);
+                        }
+                    }
+                }
+            }
+
+            if (!section) {
+                throw new Error('No section received from stream');
+            }
+
             setCurrentSection(section);
 
             const assistantMessage: ChatMessage = {
                 role: "assistant",
                 content: section.explanation || "✓ Section generated! Check the preview on the right.",
             };
-            setMessages((prev) => [...prev, assistantMessage]);
+            setMessages((prev) => {
+                const newMessages = [...prev];
+                newMessages[newMessages.length - 1] = assistantMessage;
+                return newMessages;
+            });
             setSelectedTab(0);
 
             // Auto-save conversation after successful generation
@@ -274,11 +328,15 @@ export default function AIGenerator() {
                 role: "assistant",
                 content: `❌ Sorry, I encountered an error: ${error instanceof Error ? error.message : "Unknown error"}. Please try again.`,
             };
-            setMessages((prev) => [...prev, errorMessage]);
+            setMessages((prev) => {
+                const newMessages = [...prev];
+                newMessages[newMessages.length - 1] = errorMessage;
+                return newMessages;
+            });
         } finally {
             setIsLoading(false);
         }
-    }, [inputValue, isLoading, messages, attachedFiles]);
+    }, [inputValue, isLoading, messages, attachedFiles, saveConversation]);
 
     const handleApply = useCallback(async () => {
         if (!currentSection) return;
