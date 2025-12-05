@@ -551,22 +551,23 @@ export default function AIGenerator() {
             let processedCode = liquidCode;
 
             // Remove Liquid control flow tags (if, unless, for, etc.)
-            processedCode = processedCode.replace(/{%\s*if\s+.*?%}/g, '');
-            processedCode = processedCode.replace(/{%\s*unless\s+.*?%}/g, '');
-            processedCode = processedCode.replace(/{%\s*elsif\s+.*?%}/g, '');
-            processedCode = processedCode.replace(/{%\s*else\s*%}/g, '');
-            processedCode = processedCode.replace(/{%\s*endif\s*%}/g, '');
-            processedCode = processedCode.replace(/{%\s*endunless\s*%}/g, '');
-            processedCode = processedCode.replace(/{%\s*for\s+.*?%}/g, '');
-            processedCode = processedCode.replace(/{%\s*endfor\s*%}/g, '');
-            processedCode = processedCode.replace(/{%\s*assign\s+.*?%}/g, '');
-            processedCode = processedCode.replace(/{%\s*capture\s+.*?%}/g, '');
-            processedCode = processedCode.replace(/{%\s*endcapture\s*%}/g, '');
+            // Updated to handle {%-, {% and -%}, %} variants
+            processedCode = processedCode.replace(/\{%-?\s*if\s+.*?-?%\}/g, '');
+            processedCode = processedCode.replace(/\{%-?\s*unless\s+.*?-?%\}/g, '');
+            processedCode = processedCode.replace(/\{%-?\s*elsif\s+.*?-?%\}/g, '');
+            processedCode = processedCode.replace(/\{%-?\s*else\s*-?%\}/g, '');
+            processedCode = processedCode.replace(/\{%-?\s*endif\s*-?%\}/g, '');
+            processedCode = processedCode.replace(/\{%-?\s*endunless\s*-?%\}/g, '');
+            processedCode = processedCode.replace(/\{%-?\s*for\s+.*?-?%\}/g, '');
+            processedCode = processedCode.replace(/\{%-?\s*endfor\s*-?%\}/g, '');
+            processedCode = processedCode.replace(/\{%-?\s*assign\s+.*?-?%\}/g, '');
+            processedCode = processedCode.replace(/\{%-?\s*capture\s+.*?-?%\}/g, '');
+            processedCode = processedCode.replace(/\{%-?\s*endcapture\s*-?%\}/g, '');
 
             // Replace {{ section.settings.* }} with values (including conditions and filters)
-            // Match any {{ section.settings.id ... }} pattern
+            // Handle {{- and -}} variants as well
             processedCode = processedCode.replace(
-                /\{\{\s*section\.settings\.(\w+)[^}]*\}\}/g,
+                /\{\{-?\s*section\.settings\.(\w+)[^}]*-?\}\}/g,
                 (match, settingId) => {
                     const value = mockData.section.settings[settingId];
                     if (value === undefined || value === null || value === '') {
@@ -577,10 +578,10 @@ export default function AIGenerator() {
             );
 
             // Replace {{ section.id }}
-            processedCode = processedCode.replace(/\{\{\s*section\.id\s*\}\}/g, mockData.section.id);
+            processedCode = processedCode.replace(/\{\{-?\s*section\.id\s*-?\}\}/g, mockData.section.id);
 
             // Remove any remaining Liquid variables we haven't handled
-            processedCode = processedCode.replace(/\{\{[^}]+\}\}/g, '');
+            processedCode = processedCode.replace(/\{\{-?[^}]+-?\}\}/g, '');
 
             return processedCode;
         } catch (error) {
