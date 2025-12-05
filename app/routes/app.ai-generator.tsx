@@ -60,6 +60,7 @@ export default function AIGenerator() {
     const [inputValue, setInputValue] = useState("");
     const [isLoading, setIsLoading] = useState(false);
     const [isApplying, setIsApplying] = useState(false);
+    const [shouldAutoScroll, setShouldAutoScroll] = useState(true);
     const [currentSection, setCurrentSection] = useState<GeneratedSection | null>(null);
     const [currentPrompt, setCurrentPrompt] = useState("");
     const [selectedTab, setSelectedTab] = useState(0);
@@ -77,8 +78,12 @@ export default function AIGenerator() {
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
-        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-    }, [messages]);
+        // Only auto-scroll when shouldAutoScroll is true (i.e., when sending new messages)
+        // Don't auto-scroll when loading old conversations
+        if (shouldAutoScroll) {
+            messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+        }
+    }, [messages, shouldAutoScroll]);
 
     // Load chat history on mount
     useEffect(() => {
@@ -165,6 +170,9 @@ export default function AIGenerator() {
                 setMessages(messages);
                 setCurrentConversationId(id);
 
+                // Disable auto-scroll when loading old conversations
+                setShouldAutoScroll(false);
+
                 // Set sectionId from conversation for tracking
                 if (data.conversation.sectionId) {
                     console.log('🔄 Setting sectionId from conversation:', data.conversation.sectionId);
@@ -228,6 +236,9 @@ export default function AIGenerator() {
         setChatName("");
         setAttachedFiles([]);
         setShowHistoryDropdown(false);
+
+        // Enable auto-scroll for new chats
+        setShouldAutoScroll(true);
     }, []);
 
     const handleClose = useCallback(() => {
@@ -297,6 +308,9 @@ export default function AIGenerator() {
         setInputValue("");
         setAttachedFiles([]);
         setIsLoading(true);
+
+        // Enable auto-scroll when sending new messages
+        setShouldAutoScroll(true);
 
         // Add a streaming message placeholder
         const streamingMessage: ChatMessage = {
