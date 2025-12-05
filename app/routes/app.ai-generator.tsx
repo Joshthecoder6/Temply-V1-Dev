@@ -248,6 +248,8 @@ export default function AIGenerator() {
     const handleSendMessage = useCallback(async () => {
         if ((!inputValue.trim() && attachedFiles.length === 0) || isLoading) return;
 
+        console.log('🚀 Starting AI generation...');
+
         const userMessage: ChatMessage = {
             role: "user",
             content: inputValue || "[Image attached]",
@@ -267,6 +269,9 @@ export default function AIGenerator() {
         setMessages((prev) => [...prev, streamingMessage]);
 
         try {
+            console.log('📡 Sending request to /app/api/ai-chat-stream...');
+            console.log('📤 Messages count:', [...messages, userMessage].length);
+
             // Use fetch to POST the message, then read the stream
             const response = await fetch("/app/api/ai-chat-stream", {
                 method: "POST",
@@ -276,8 +281,11 @@ export default function AIGenerator() {
                 }),
             });
 
+            console.log('📥 Stream response received:', response.status, response.statusText);
+
             if (!response.ok) {
                 const responseText = await response.text();
+                console.error('❌ Stream error response:', responseText);
                 let errorMessage = `API error: ${response.status} ${response.statusText}`;
 
                 try {
@@ -292,11 +300,14 @@ export default function AIGenerator() {
                 throw new Error(errorMessage);
             }
 
+            console.log('📖 Starting to read SSE stream...');
+
             // Read the SSE stream
             const reader = response.body?.getReader();
             const decoder = new TextDecoder();
             let buffer = '';
             let section: GeneratedSection | null = null;
+            let chunkCount = 0;
 
             if (!reader) {
                 throw new Error('No reader available');
@@ -305,7 +316,10 @@ export default function AIGenerator() {
             while (true) {
                 const { done, value } = await reader.read();
 
-                if (done) break;
+                if (done) {
+                    console.log('✅ Stream reading complete. Total chunks:', chunkCount);
+                    break;
+                }
 
                 buffer += decoder.decode(value, { stream: true });
                 const lines = buffer.split('\n\n');
@@ -315,34 +329,40 @@ export default function AIGenerator() {
                     if (line.startsWith('data: ')) {
                         try {
                             const data = JSON.parse(line.slice(6));
+                            console.log('📨 SSE event received:', data.type);
 
                             if (data.type === 'chunk') {
+                                chunkCount++;
                                 // Update streaming message with chunks (optional - could show token count)
                                 setMessages((prev) => {
                                     const newMessages = [...prev];
                                     newMessages[newMessages.length - 1] = {
                                         role: "assistant",
-                                        content: "⏳ Generating section... (streaming)"
+                                        content: `⏳ Generating section... (${chunkCount} chunks)`
                                     };
                                     return newMessages;
                                 });
                             } else if (data.type === 'complete') {
+                                console.log('🎉 Section generation complete!');
                                 // Final section received
                                 section = data.section;
                             } else if (data.type === 'error') {
+                                console.error('❌ Server error:', data.error);
                                 throw new Error(data.error);
                             }
                         } catch (parseError) {
-                            console.error('Error parsing SSE data:', parseError);
+                            console.error('❌ Error parsing SSE data:', parseError, 'Line:', line);
                         }
                     }
                 }
             }
 
             if (!section) {
+                console.error('❌ No section received! Chunk count:', chunkCount);
                 throw new Error('No section received from stream');
             }
 
+            console.log('✅ Setting current section');
             setCurrentSection(section);
 
             const assistantMessage: ChatMessage = {
@@ -359,7 +379,7 @@ export default function AIGenerator() {
             // Auto-save conversation after successful generation
             setTimeout(() => saveConversation(), 500);
         } catch (error) {
-            console.error("Error generating section:", error);
+            console.error("❌ Error generating section:", error);
             const errorMessage: ChatMessage = {
                 role: "assistant",
                 content: `❌ Sorry, I encountered an error: ${error instanceof Error ? error.message : "Unknown error"}. Please try again.`,
