@@ -136,13 +136,32 @@ export default function AIGenerator() {
 
             const data = await response.json();
             console.log('📂 Conversation loaded - Full data:', data);
-            console.log('📂 Messages count:', data.conversation?.messages?.length);
-            console.log('📂 Messages:', data.conversation?.messages);
+            console.log('📂 Raw messages:', data.conversation?.messages);
 
-            if (data.success && data.conversation && data.conversation.messages) {
-                const messages = data.conversation.messages;
+            if (data.success && data.conversation) {
+                // Validate messages
+                let messages = data.conversation.messages;
 
-                console.log('✅ Setting messages:', messages);
+                // If messages is a string, try to parse it
+                if (typeof messages === 'string') {
+                    console.log('⚠️ Messages is a string, parsing...');
+                    try {
+                        messages = JSON.parse(messages);
+                    } catch (parseError) {
+                        console.error('❌ Failed to parse messages:', parseError);
+                        shopify.toast.show('Failed to parse conversation messages', { isError: true });
+                        return;
+                    }
+                }
+
+                // Ensure messages is an array
+                if (!Array.isArray(messages)) {
+                    console.error('❌ Messages is not an array:', messages);
+                    shopify.toast.show('Invalid conversation format', { isError: true });
+                    return;
+                }
+
+                console.log('✅ Setting messages:', messages.length, 'messages');
                 setMessages(messages);
                 setCurrentConversationId(id);
 
@@ -178,7 +197,7 @@ export default function AIGenerator() {
             console.error('❌ Error loading conversation:', error);
             shopify.toast.show('Failed to load conversation', { isError: true });
         }
-    }, []);
+    }, [shopify]);
 
     const deleteConversation = useCallback(async (id: string) => {
         try {

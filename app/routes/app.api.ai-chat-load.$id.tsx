@@ -23,8 +23,22 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
             return { error: "Conversation not found", status: 404 };
         }
 
+        console.log('📂 [Load] Conversation found:', id);
+        console.log('📂 [Load] Raw messages type:', typeof conversation.messages);
+        console.log('📂 [Load] Raw messages length:', conversation.messages?.length);
+
         // Parse messages from JSON
-        const messages = JSON.parse(conversation.messages);
+        let messages;
+        try {
+            messages = JSON.parse(conversation.messages);
+            console.log('📂 [Load] Parsed messages successfully, count:', Array.isArray(messages) ? messages.length : 'not an array');
+        } catch (parseError) {
+            console.error('❌ [Load] Failed to parse messages:', parseError);
+            return {
+                error: "Failed to parse conversation messages",
+                status: 500
+            };
+        }
 
         return {
             success: true,
