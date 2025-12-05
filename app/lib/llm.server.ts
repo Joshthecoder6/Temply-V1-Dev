@@ -6,9 +6,10 @@ if (!process.env.XAI_API_KEY) {
   console.error('Get your API key from: https://console.x.ai');
 }
 
-// Initialize X.AI client (OpenAI SDK compatible)
+// Initialize X.AI client (using OpenAI SDK with X.AI base URL)
+// X.AI is API-compatible with OpenAI SDK, we just point to their endpoint
 const openai = new OpenAI({
-  apiKey: process.env.XAI_API_KEY || '',
+  apiKey: process.env.XAI_API_KEY || 'dummy-key-will-fail', // Use dummy to prevent null errors
   baseURL: 'https://api.x.ai/v1',
 });
 
