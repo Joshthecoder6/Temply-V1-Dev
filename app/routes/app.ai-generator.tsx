@@ -71,6 +71,7 @@ export default function AIGenerator() {
     const [conversations, setConversations] = useState<ChatConversation[]>([]);
     const [currentConversationId, setCurrentConversationId] = useState<string | null>(null);
     const [showHistoryDropdown, setShowHistoryDropdown] = useState(false);
+    const [chatName, setChatName] = useState("");
 
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -103,6 +104,7 @@ export default function AIGenerator() {
                 body: JSON.stringify({
                     messages,
                     conversationId: currentConversationId,
+                    title: chatName || currentSection?.sectionName || "Untitled Chat",
                 }),
             });
             const data = await response.json();
@@ -189,6 +191,7 @@ export default function AIGenerator() {
         setCurrentConversationId(null);
         setCurrentSection(null);
         setInputValue("");
+        setChatName("");
         setAttachedFiles([]);
         setShowHistoryDropdown(false);
     }, []);
@@ -629,7 +632,9 @@ export default function AIGenerator() {
                             srcDoc={combinedCode}
                             style={{
                                 width: "100%",
-                                minHeight: viewMode === "desktop" ? "800px" : "500px", // Desktop taller
+                                height: "auto",
+                                minHeight: viewMode === "desktop" ? "1000px" : "600px",
+                                maxHeight: "2000px",
                                 border: "1px solid #E1E3E5",
                                 borderRadius: "8px",
                                 background: "white",
@@ -1011,6 +1016,16 @@ export default function AIGenerator() {
                         borderTop: "1px solid #E1E3E5",
                     }}>
                         <BlockStack gap="200">
+                            {/* Chat/Section Name Input */}
+                            <TextField
+                                label="Section/Chat Name"
+                                value={chatName}
+                                onChange={setChatName}
+                                placeholder="e.g., Product Carousel, Hero Banner..."
+                                autoComplete="off"
+                                helpText="This name will be used for the section and saved in chat history"
+                            />
+
                             {/* File Attachments Preview */}
                             {attachedFiles.length > 0 && (
                                 <div style={{
