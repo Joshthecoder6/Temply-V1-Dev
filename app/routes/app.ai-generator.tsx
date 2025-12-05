@@ -115,16 +115,44 @@ export default function AIGenerator() {
 
     const loadConversation = useCallback(async (id: string) => {
         try {
+            console.log('📂 Loading conversation:', id);
             const response = await fetch(`/app/api/ai-chat-load/${id}`);
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error('Failed to load conversation:', response.status, errorText);
+                shopify.toast.show('Failed to load conversation', { isError: true });
+                return;
+            }
+
             const data = await response.json();
-            if (data.success) {
+            console.log('📂 Conversation loaded:', data);
+
+            if (data.success && data.conversation) {
                 setMessages(data.conversation.messages);
                 setCurrentConversationId(id);
-                setCurrentSection(null);
+
+                // Try to restore the last generated section from messages
+                const lastAssistantMessage = [...data.conversation.messages]
+                    .reverse()
+                    .find((msg: any) => msg.role === 'assistant');
+
+                if (lastAssistantMessage?.section) {
+                    console.log('🔄 Restoring section from conversation');
+                    setCurrentSection(lastAssistantMessage.section);
+                } else {
+                    setCurrentSection(null);
+                }
+
                 setShowHistoryDropdown(false);
+                shopify.toast.show('Conversation loaded successfully');
+            } else {
+                console.error('Invalid response format:', data);
+                shopify.toast.show('Failed to load conversation', { isError: true });
             }
         } catch (error) {
-            console.error("Error loading conversation:", error);
+            console.error('Error loading conversation:', error);
+            shopify.toast.show('Failed to load conversation', { isError: true });
         }
     }, []);
 
