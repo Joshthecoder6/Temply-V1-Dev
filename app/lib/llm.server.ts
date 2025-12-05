@@ -282,42 +282,86 @@ export async function generateSectionStream(
   onError: (error: Error) => void
 ) {
   try {
-    const stream = await openai.chat.completions.create({
-      model: process.env.XAI_MODEL || 'grok-4-1-fast',
-      messages: [
-        { role: 'system', content: SYSTEM_PROMPT },
-        ...messages,
-      ],
-      temperature: parseFloat(process.env.XAI_TEMPERATURE || '0.7'),
-      max_tokens: parseInt(process.env.XAI_MAX_TOKENS || '8000'),
-      stream: true,
+    // Validate API key
+    if (!process.env.XAI_API_KEY) {
+      console.error('❌ XAI_API_KEY is missing');
+      onError(new Error('X.AI API key is not configured'));
+      return;
+    }
+
+    console.log('🎬 Starting stream generation...');
+    console.log('📤 Messages count:', messages.length);
+
+    const stream = await retryWithBackoff(async () => {
+      return await openai.chat.completions.create({
+        model: process.env.XAI_MODEL || 'grok-4-1-fast',
+        messages: [
+          { role: 'system', content: SYSTEM_PROMPT },
+          ...messages,
+        ],
+        temperature: parseFloat(process.env.XAI_TEMPERATURE || '0.7'),
+        max_tokens: parseInt(process.env.XAI_MAX_TOKENS || '8000'),
+        stream: true,
+      });
     });
 
     let fullContent = '';
+    let chunkCount = 0;
+
+    console.log('📖 Reading stream...');
 
     for await (const chunk of stream) {
       const content = chunk.choices[0]?.delta?.content || '';
       if (content) {
         fullContent += content;
+        chunkCount++;
         onChunk(content);
       }
     }
 
+    console.log(`✅ Stream complete. Chunks: ${chunkCount}, Content length: ${fullContent.length}`);
+
+    if (!fullContent || fullContent.length === 0) {
+      console.error('❌ No content received from stream');
+      onError(new Error('No content received from X.AI stream'));
+      return;
+    }
+
     // Parse the JSON response
     try {
-      const jsonMatch = fullContent.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        const section = JSON.parse(jsonMatch[0]) as GeneratedSection;
-        onComplete(section);
+      console.log('🔍 Parsing JSON from response...');
+
+      // Remove markdown code fences if present
+      let jsonString = fullContent;
+      const codeBlockMatch = fullContent.match(/```(?:json)?\s*(\{[\s\S]*\})\s*```/);
+      if (codeBlockMatch) {
+        jsonString = codeBlockMatch[1];
+        console.log('📦 Extracted from code block');
       } else {
+        // Try to extract JSON object
+        const jsonMatch = fullContent.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          jsonString = jsonMatch[0];
+          console.log('📦 Extracted JSON object');
+        }
+      }
+
+      if (!jsonString || jsonString.length === 0) {
+        console.error('❌ No JSON found in response');
+        console.error('Response preview:', fullContent.substring(0, 500));
         throw new Error('No valid JSON found in response');
       }
+
+      const section = JSON.parse(jsonString) as GeneratedSection;
+      console.log('🎉 Successfully parsed section');
+      onComplete(section);
     } catch (parseError) {
-      console.error('Failed to parse LLM response:', fullContent);
+      console.error('❌ Failed to parse LLM response:', parseError);
+      console.error('Response preview:', fullContent.substring(0, 500));
       onError(new Error('Failed to parse section from LLM response'));
     }
   } catch (error) {
-    console.error('X.AI API error:', error);
+    console.error('❌ X.AI API error:', error);
     onError(error as Error);
   }
 }
