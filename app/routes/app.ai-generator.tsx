@@ -977,19 +977,16 @@ export default function AIGenerator() {
                 gridTemplateColumns: "1fr 1fr", // Chat 50%, Preview 50% - equal width
                 overflow: "hidden",
             }}>
-                {/* Chat Panel */}
+                {/* Chat Panel - Entire panel is scrollable */}
                 <div style={{
                     borderRight: "1px solid #E1E3E5",
-                    display: "flex",
-                    flexDirection: "column",
+                    overflowY: "auto",
                     height: "100%",
+                    background: "#F6F6F7",
                 }}>
                     {/* Messages */}
                     <div style={{
-                        flex: 1,
-                        overflowY: "auto",
                         padding: "20px",
-                        background: "#F6F6F7",
                     }}>
                         <BlockStack gap="400">
                             {messages.map((message, index) => (
@@ -1083,14 +1080,11 @@ export default function AIGenerator() {
                         </BlockStack>
                     </div>
 
-                    {/* Input - Sticky at bottom */}
+                    {/* Input - Now part of scrollable content */}
                     <div style={{
                         padding: "16px",
                         background: "white",
                         borderTop: "1px solid #E1E3E5",
-                        position: "sticky",
-                        bottom: 0,
-                        zIndex: 10,
                     }}>
                         <BlockStack gap="200">
                             {/* Chat/Section Name Input */}
