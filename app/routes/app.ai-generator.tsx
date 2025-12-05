@@ -895,7 +895,7 @@ export default function AIGenerator() {
             <div style={{
                 flex: 1,
                 display: "grid",
-                gridTemplateColumns: "2fr 3fr", // Chat 40%, Preview 60%
+                gridTemplateColumns: "1fr 1fr", // Chat 50%, Preview 50% - equal width
                 overflow: "hidden",
             }}>
                 {/* Chat Panel */}
@@ -1123,9 +1123,10 @@ export default function AIGenerator() {
                     flexDirection: "column",
                     height: "100%",
                     background: "white",
+                    overflow: "hidden",
                 }}>
                     <Tabs tabs={tabs} selected={selectedTab} onSelect={setSelectedTab}>
-                        <div style={{ height: "calc(100vh - 106px)", overflowY: "auto" }}>
+                        <div style={{ flex: 1, overflowY: "auto", overflowX: "hidden" }}>
                             {selectedTab === 0 ? renderPreview() : renderCode()}
                         </div>
                     </Tabs>
