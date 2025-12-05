@@ -26,22 +26,52 @@ export const action = async ({ request }: ActionFunctionArgs) => {
             return { error: "AI section not found", status: 404 };
         }
 
-        // Create equivalent SocialProofSection
-        const socialProofSection = await prisma.socialProofSection.create({
-            data: {
+        // Create or update equivalent SocialProofSection
+        // Check if we already applied this AI section before
+        const existingSocialProofSection = await prisma.socialProofSection.findFirst({
+            where: {
                 shop,
+                // Use title matching to find existing section (AI sections don't have direct relation)
                 title: aiSection.sectionName,
-                type: aiSection.sectionType,
-                status: "active",
-                content: JSON.stringify({
-                    html: aiSection.htmlCode,
-                    css: aiSection.cssCode,
-                    js: aiSection.jsCode,
-                    liquid: aiSection.liquidCode,
-                }),
-                settings: aiSection.previewData,
             },
         });
+
+        let socialProofSection;
+        if (existingSocialProofSection) {
+            // Update existing section
+            socialProofSection = await prisma.socialProofSection.update({
+                where: { id: existingSocialProofSection.id },
+                data: {
+                    type: aiSection.sectionType,
+                    status: "active",
+                    content: JSON.stringify({
+                        html: aiSection.htmlCode,
+                        css: aiSection.cssCode,
+                        js: aiSection.jsCode,
+                        liquid: aiSection.liquidCode,
+                    }),
+                    settings: aiSection.previewData,
+                    updatedAt: new Date(),
+                },
+            });
+        } else {
+            // Create new section
+            socialProofSection = await prisma.socialProofSection.create({
+                data: {
+                    shop,
+                    title: aiSection.sectionName,
+                    type: aiSection.sectionType,
+                    status: "active",
+                    content: JSON.stringify({
+                        html: aiSection.htmlCode,
+                        css: aiSection.cssCode,
+                        js: aiSection.jsCode,
+                        liquid: aiSection.liquidCode,
+                    }),
+                    settings: aiSection.previewData,
+                },
+            });
+        }
 
         // Update AI section status
         await prisma.aISection.update({

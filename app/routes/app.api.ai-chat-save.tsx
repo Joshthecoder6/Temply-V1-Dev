@@ -14,20 +14,24 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
     try {
         const body = await request.json();
-        const { messages, conversationId } = body as {
+        const { messages, conversationId, title, sectionId } = body as {
             messages: ChatMessage[];
             conversationId?: string;
+            title?: string;
+            sectionId?: string;
         };
 
         if (!messages || !Array.isArray(messages)) {
             return { error: "Invalid messages format", status: 400 };
         }
 
-        // Generate title from first user message (max 50 chars)
-        const firstUserMessage = messages.find(m => m.role === "user");
-        const title = firstUserMessage
-            ? firstUserMessage.content.substring(0, 50) + (firstUserMessage.content.length > 50 ? "..." : "")
-            : "New conversation";
+        // Use provided title, or generate from first user message as fallback
+        const conversationTitle = title || (() => {
+            const firstUserMessage = messages.find(m => m.role === "user");
+            return firstUserMessage
+                ? firstUserMessage.content.substring(0, 50) + (firstUserMessage.content.length > 50 ? "..." : "")
+                : "New conversation";
+        })();
 
         const messagesJson = JSON.stringify(messages);
         const now = new Date();
@@ -42,6 +46,8 @@ export const action = async ({ request }: ActionFunctionArgs) => {
                     shop, // Ensure user owns this conversation
                 },
                 data: {
+                    title: conversationTitle,
+                    sectionId: sectionId || undefined,
                     messages: messagesJson,
                     lastMessageAt: now,
                     updatedAt: now,
@@ -52,7 +58,8 @@ export const action = async ({ request }: ActionFunctionArgs) => {
             conversation = await db.chatConversation.create({
                 data: {
                     shop,
-                    title,
+                    title: conversationTitle,
+                    sectionId: sectionId || null,
                     messages: messagesJson,
                     lastMessageAt: now,
                 },

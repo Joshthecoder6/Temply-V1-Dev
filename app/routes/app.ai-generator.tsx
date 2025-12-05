@@ -70,6 +70,7 @@ export default function AIGenerator() {
     // Chat history state
     const [conversations, setConversations] = useState<ChatConversation[]>([]);
     const [currentConversationId, setCurrentConversationId] = useState<string | null>(null);
+    const [currentSectionId, setCurrentSectionId] = useState<string | null>(null);
     const [showHistoryDropdown, setShowHistoryDropdown] = useState(false);
     const [chatName, setChatName] = useState("");
 
@@ -98,13 +99,17 @@ export default function AIGenerator() {
 
     const saveConversation = useCallback(async () => {
         try {
+            // Use chatName if provided, otherwise fallback to section name or default
+            const conversationTitle = chatName || currentSection?.sectionName || "Untitled Chat";
+
             const response = await fetch("/app/api/ai-chat-save", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     messages,
                     conversationId: currentConversationId,
-                    title: chatName || currentSection?.sectionName || "Untitled Chat",
+                    title: conversationTitle,
+                    sectionId: currentSectionId,
                 }),
             });
             const data = await response.json();
@@ -115,7 +120,7 @@ export default function AIGenerator() {
         } catch (error) {
             console.error("Error saving conversation:", error);
         }
-    }, [messages, currentConversationId]);
+    }, [messages, currentConversationId, chatName, currentSection, currentSectionId]);
 
     const loadConversation = useCallback(async (id: string) => {
         try {
@@ -140,6 +145,15 @@ export default function AIGenerator() {
                 console.log('✅ Setting messages:', messages);
                 setMessages(messages);
                 setCurrentConversationId(id);
+
+                // Set sectionId from conversation for tracking
+                if (data.conversation.sectionId) {
+                    console.log('🔄 Setting sectionId from conversation:', data.conversation.sectionId);
+                    setCurrentSectionId(data.conversation.sectionId);
+                }
+
+                // Set chatName from conversation title
+                setChatName(data.conversation.title || "");
 
                 // Try to restore the last generated section from messages
                 const lastAssistantMessage = [...messages]
@@ -189,6 +203,7 @@ export default function AIGenerator() {
             content: "✨ Hi! I'm Temply AI, your intelligent Shopify section assistant. Describe the section you want to create, and I'll generate beautiful, production-ready code for you.\n\nFor example:\n• \"Create a testimonial section with 3 customer reviews\"\n• \"Build a countdown timer for sales\"\n• \"Design a trust badges section with payment icons\"\n• \"Make an animated product showcase carousel\"",
         }]);
         setCurrentConversationId(null);
+        setCurrentSectionId(null);
         setCurrentSection(null);
         setInputValue("");
         setChatName("");
@@ -403,6 +418,7 @@ export default function AIGenerator() {
         setIsApplying(true);
 
         try {
+            // Save section with conversationId for proper overwriting
             const saveResponse = await fetch("/app/api/ai-sections/save", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -411,6 +427,7 @@ export default function AIGenerator() {
                         ...currentSection,
                         prompt: currentPrompt,
                     },
+                    conversationId: currentConversationId,
                 }),
             });
 
@@ -419,6 +436,12 @@ export default function AIGenerator() {
             if (saveData.error) {
                 throw new Error(saveData.error);
             }
+
+            // Track the sectionId for future updates
+            setCurrentSectionId(saveData.id);
+
+            // Save conversation with the sectionId link
+            await saveConversation();
 
             const applyResponse = await fetch("/app/api/ai-sections/apply", {
                 method: "POST",
@@ -604,7 +627,7 @@ export default function AIGenerator() {
     `;
 
         return (
-            <div style={{ padding: viewMode === "desktop" ? "8px" : "16px", background: "#F6F6F7", minHeight: "600px" }}>
+            <div style={{ padding: "16px", background: "#F6F6F7", minHeight: "600px" }}>
                 <BlockStack gap="300">
                     <InlineStack gap="200">
                         <Button
@@ -624,20 +647,22 @@ export default function AIGenerator() {
                     </InlineStack>
 
                     <div style={{
+                        width: "100%",
                         maxWidth: viewMode === "mobile" ? "375px" : "100%",
-                        margin: "0 auto",
-                        transition: "max-width 0.3s",
+                        margin: viewMode === "mobile" ? "0 auto" : "0",
+                        transition: "all 0.3s ease",
                     }}>
                         <iframe
                             srcDoc={combinedCode}
                             style={{
                                 width: "100%",
                                 height: "auto",
-                                minHeight: viewMode === "desktop" ? "1000px" : "600px",
+                                minHeight: viewMode === "desktop" ? "800px" : "600px",
                                 maxHeight: "2000px",
                                 border: "1px solid #E1E3E5",
                                 borderRadius: "8px",
                                 background: "white",
+                                display: "block",
                             }}
                             title="Section Preview"
                             sandbox="allow-scripts"
