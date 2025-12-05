@@ -1083,11 +1083,14 @@ export default function AIGenerator() {
                         </BlockStack>
                     </div>
 
-                    {/* Input */}
+                    {/* Input - Sticky at bottom */}
                     <div style={{
                         padding: "16px",
                         background: "white",
                         borderTop: "1px solid #E1E3E5",
+                        position: "sticky",
+                        bottom: 0,
+                        zIndex: 10,
                     }}>
                         <BlockStack gap="200">
                             {/* Chat/Section Name Input */}
