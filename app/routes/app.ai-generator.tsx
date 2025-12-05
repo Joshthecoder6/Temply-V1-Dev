@@ -15,6 +15,7 @@ import {
     Icon,
 } from "@shopify/polaris";
 import { SendIcon, AttachmentIcon, DeleteIcon, ClockIcon, PlusIcon } from "@shopify/polaris-icons";
+import { useAppBridge } from "@shopify/app-bridge-react";
 
 interface ChatMessage {
     role: "user" | "assistant";
@@ -48,6 +49,7 @@ interface ChatConversation {
 
 export default function AIGenerator() {
     const navigate = useNavigate();
+    const shopify = useAppBridge();
     const [active, setActive] = useState(true);
     const [messages, setMessages] = useState<ChatMessage[]>([
         {
