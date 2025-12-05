@@ -371,21 +371,37 @@ async function retryWithBackoff<T>(
     } catch (error: any) {
       lastError = error;
 
+      // Extract status code from various error formats
+      const statusCode = error?.status || error?.statusCode || error?.response?.status || null;
+      const errorCode = error?.code || null;
+
       // Check if error is retryable (503, 500, 429, network errors)
       const isRetryable =
-        error?.status === 503 ||
-        error?.status === 500 ||
-        error?.status === 429 ||
-        error?.code === 'ECONNRESET' ||
-        error?.code === 'ETIMEDOUT';
+        statusCode === 503 ||
+        statusCode === 500 ||
+        statusCode === 429 ||
+        statusCode === 502 ||
+        statusCode === 504 ||
+        errorCode === 'ECONNRESET' ||
+        errorCode === 'ETIMEDOUT' ||
+        errorCode === 'ENOTFOUND' ||
+        (error?.message && error.message.includes('503')) ||
+        (error?.message && error.message.includes('timeout'));
 
       if (!isRetryable || attempt === maxRetries) {
+        console.error(`[X.AI] Non-retryable error or max retries reached:`, {
+          attempt: attempt + 1,
+          status: statusCode,
+          code: errorCode,
+          message: error?.message,
+          isRetryable
+        });
         throw error;
       }
 
       // Calculate delay with exponential backoff
       const delay = baseDelay * Math.pow(2, attempt);
-      console.log(`[X.AI] Retry attempt ${attempt + 1}/${maxRetries} after ${delay}ms due to: ${error?.message || error}`);
+      console.log(`[X.AI] Retry attempt ${attempt + 1}/${maxRetries} after ${delay}ms due to: ${error?.message || error} (status: ${statusCode || 'unknown'})`);
 
       await new Promise(resolve => setTimeout(resolve, delay));
     }
