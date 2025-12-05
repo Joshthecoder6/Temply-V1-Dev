@@ -952,7 +952,7 @@ function PricingContent() {
         primaryAction={{
           content: 'Validate Code',
           onAction: () => {
-            // Validate discount code against customer.discounts
+            // Validate discount code against discounts in customer.plans
             setDiscountError(undefined);
 
             if (!discountCode.trim()) {
@@ -960,16 +960,29 @@ function PricingContent() {
               return;
             }
 
-            // Find matching discount in customer.discounts
-            const matchingDiscount = customer?.discounts?.find(
-              (discount: any) =>
-                discount.code?.toLowerCase() === discountCode.trim().toLowerCase() &&
-                discount.status === 'active'
-            );
+            // Search for matching discount across all plans
+            let matchingDiscount: any = null;
+
+            if (customer?.plans && Array.isArray(customer.plans)) {
+              for (const plan of customer.plans) {
+                if (plan.discounts && Array.isArray(plan.discounts)) {
+                  const found = plan.discounts.find(
+                    (discount: any) =>
+                      discount.name?.toLowerCase() === discountCode.trim().toLowerCase() ||
+                      discount.code?.toLowerCase() === discountCode.trim().toLowerCase()
+                  );
+                  if (found) {
+                    matchingDiscount = found;
+                    console.log('✅ Found discount in plan:', { planName: plan.name, discount: found });
+                    break;
+                  }
+                }
+              }
+            }
 
             if (matchingDiscount) {
               setValidatedDiscountId(matchingDiscount.id);
-              console.log('Discount code validated:', {
+              console.log('🎟️ Discount code validated:', {
                 code: discountCode.trim(),
                 id: matchingDiscount.id,
                 name: matchingDiscount.name,
@@ -979,6 +992,9 @@ function PricingContent() {
               setDiscountModalOpen(false);
               setDiscountCode("");
             } else {
+              console.error('❌ Discount not found. Available discounts:',
+                customer?.plans?.flatMap((p: any) => p.discounts || []).map((d: any) => ({ name: d.name, code: d.code }))
+              );
               setDiscountError("Rabattcode ungültig oder nicht für diesen Plan gültig");
             }
           },
