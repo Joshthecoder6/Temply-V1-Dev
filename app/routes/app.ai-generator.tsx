@@ -603,7 +603,7 @@ export default function AIGenerator() {
                             srcDoc={combinedCode}
                             style={{
                                 width: "100%",
-                                minHeight: viewMode === "desktop" ? "600px" : "500px",
+                                minHeight: viewMode === "desktop" ? "800px" : "500px", // Desktop taller
                                 border: "1px solid #E1E3E5",
                                 borderRadius: "8px",
                                 background: "white",
@@ -869,7 +869,7 @@ export default function AIGenerator() {
             <div style={{
                 flex: 1,
                 display: "grid",
-                gridTemplateColumns: "1fr 1fr",
+                gridTemplateColumns: "2fr 3fr", // Chat 40%, Preview 60%
                 overflow: "hidden",
             }}>
                 {/* Chat Panel */}
