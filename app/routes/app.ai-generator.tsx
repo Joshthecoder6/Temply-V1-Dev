@@ -402,19 +402,43 @@ export default function AIGenerator() {
             console.log('✅ Setting current section');
             setCurrentSection(section);
 
-            const assistantMessage: ChatMessage = {
+            // Store section with the message for proper restoration
+            const assistantMessage: ChatMessage & { section?: GeneratedSection } = {
                 role: "assistant",
                 content: section.explanation || "✓ Section generated! Check the preview on the right.",
+                section: section, // Store section data with message
             };
-            setMessages((prev) => {
-                const newMessages = [...prev];
-                newMessages[newMessages.length - 1] = assistantMessage;
-                return newMessages;
-            });
+
+            const updatedMessages = [...messages, userMessage, assistantMessage];
+            setMessages(updatedMessages);
             setSelectedTab(0);
 
-            // Auto-save conversation after successful generation
-            setTimeout(() => saveConversation(), 500);
+            // IMPORTANT: Auto-save conversation IMMEDIATELY after successful generation
+            console.log('💾 Auto-saving conversation...');
+            try {
+                const conversationTitle = chatName || section.sectionName || "Untitled Chat";
+                const saveResponse = await fetch("/app/api/ai-chat-save", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        messages: updatedMessages,
+                        conversationId: currentConversationId,
+                        title: conversationTitle,
+                        sectionId: currentSectionId,
+                    }),
+                });
+                const saveData = await saveResponse.json();
+                if (saveData.success) {
+                    console.log('✅ Conversation auto-saved:', saveData.conversation.id);
+                    setCurrentConversationId(saveData.conversation.id);
+                    await loadChatHistory();
+                    shopify.toast.show('Chat saved successfully');
+                } else {
+                    console.error('❌ Failed to auto-save conversation:', saveData.error);
+                }
+            } catch (saveError) {
+                console.error('❌ Error auto-saving conversation:', saveError);
+            }
         } catch (error) {
             console.error("❌ Error generating section:", error);
             const errorMessage: ChatMessage = {
@@ -429,7 +453,7 @@ export default function AIGenerator() {
         } finally {
             setIsLoading(false);
         }
-    }, [inputValue, isLoading, messages, attachedFiles, saveConversation]);
+    }, [inputValue, isLoading, messages, attachedFiles, chatName, currentConversationId, currentSectionId, shopify, loadChatHistory]);
 
     const handleApply = useCallback(async () => {
         if (!currentSection) return;
