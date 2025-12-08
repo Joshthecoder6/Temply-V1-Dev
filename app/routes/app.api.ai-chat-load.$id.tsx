@@ -15,7 +15,8 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
         const conversation = await db.chatConversation.findFirst({
             where: {
                 id,
-                shop, // Ensure user owns this conversation
+                shop,
+                userId: session.id, // Security: Ensure user owns this conversation
             },
         });
 

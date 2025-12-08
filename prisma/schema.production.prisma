@@ -137,6 +137,7 @@ model AISection {
 model ChatConversation {
   id            String    @id @default(uuid())
   shop          String
+  userId        String    // User who created this conversation
   title         String    // Section name from chatName field
   sectionId     String?   // Reference to AISection.id for section overwriting
   messages      String    // JSON string of ChatMessage[]
@@ -145,6 +146,6 @@ model ChatConversation {
   updatedAt     DateTime  @updatedAt
 
   @@index([shop])
-  @@index([shop, lastMessageAt])
+  @@index([shop, userId, lastMessageAt])
   @@index([sectionId])
 }

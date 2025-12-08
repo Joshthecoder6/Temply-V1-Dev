@@ -39,11 +39,12 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         let conversation;
 
         if (conversationId) {
-            // Update existing conversation
+            // Update existing conversation - verify user ownership
             conversation = await db.chatConversation.update({
                 where: {
                     id: conversationId,
-                    shop, // Ensure user owns this conversation
+                    shop,
+                    userId: session.id, // Security: Ensure user owns this conversation
                 },
                 data: {
                     title: conversationTitle,
@@ -58,6 +59,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
             conversation = await db.chatConversation.create({
                 data: {
                     shop,
+                    userId: session.id, // Associate with current user
                     title: conversationTitle,
                     sectionId: sectionId || null,
                     messages: messagesJson,

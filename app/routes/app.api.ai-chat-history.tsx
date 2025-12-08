@@ -7,9 +7,12 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     const { shop } = session;
 
     try {
-        // Get all conversations for this shop, ordered by most recent
+        // Get all conversations for this shop AND user, ordered by most recent
         const conversations = await db.chatConversation.findMany({
-            where: { shop },
+            where: {
+                shop,
+                userId: session.id, // Filter by user - ensures privacy
+            },
             orderBy: { lastMessageAt: 'desc' },
             select: {
                 id: true,

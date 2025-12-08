@@ -12,11 +12,12 @@ export const action = async ({ request, params }: ActionFunctionArgs) => {
     }
 
     try {
-        // Delete conversation only if it belongs to this shop
+        // Delete conversation only if it belongs to this shop AND user
         await db.chatConversation.deleteMany({
             where: {
                 id,
                 shop,
+                userId: session.id, // Security: Ensure user owns this conversation
             },
         });
 
