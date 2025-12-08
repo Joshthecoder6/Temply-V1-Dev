@@ -359,21 +359,13 @@ export default function ThemeSections() {
                 style={{
                   width: '300.66px',
                   height: '351.89px',
-                  border: section.isAI
-                    ? '3px solid transparent'
-                    : '1px solid #e1e3e5',
-                  backgroundImage: section.isAI
-                    ? 'linear-gradient(white, white), linear-gradient(90deg, #ff0080, #ff8c00, #40e0d0, #8a2be2, #ff0080)'
-                    : 'none',
-                  backgroundOrigin: section.isAI ? 'padding-box, border-box' : undefined,
-                  backgroundClip: section.isAI ? 'padding-box, border-box' : undefined,
-                  background: section.isAI ? undefined : 'white',
+                  border: '1px solid #e1e3e5',
+                  background: 'white',
                   borderRadius: '12px',
                   overflow: 'hidden',
                   transition: 'box-shadow 0.2s ease, transform 0.2s ease',
                   display: 'flex',
-                  flexDirection: 'column',
-                  animation: section.isAI ? 'rainbow-rotate 3s linear infinite' : 'none'
+                  flexDirection: 'column'
                 }}
               >
                 {/* Preview Image */}
@@ -398,29 +390,7 @@ export default function ThemeSections() {
                       }}
                     />
                   )}
-                  {/* AI Badge */}
-                  {section.isAI && (
-                    <div style={{
-                      position: 'absolute',
-                      top: '12px',
-                      right: '12px',
-                      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                      color: 'white',
-                      padding: '6px 12px',
-                      borderRadius: '20px',
-                      fontSize: '12px',
-                      fontWeight: 600,
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '6px',
-                      boxShadow: '0 2px 8px rgba(0,0,0,0.15)'
-                    }}>
-                      <svg width="14" height="14" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M8 0L9.5 5.5L15 7L9.5 8.5L8 14L6.5 8.5L1 7L6.5 5.5L8 0Z" fill="white" stroke="white" strokeWidth="0.5" />
-                      </svg>
-                      AI Generated
-                    </div>
-                  )}
+
                 </div>
 
                 {/* Content */}
@@ -428,10 +398,11 @@ export default function ThemeSections() {
                   padding: '20px',
                   display: 'flex',
                   flexDirection: 'column',
-                  flex: 1
+                  gap: '12px'
                 }}>
+                  {/* Section Name */}
                   <h3 style={{
-                    margin: '0 0 12px 0',
+                    margin: 0,
                     fontSize: '16px',
                     fontWeight: 600,
                     color: '#202223'
@@ -439,14 +410,16 @@ export default function ThemeSections() {
                     {section.name}
                   </h3>
 
-                  <Text as="p" variant="bodyMd" tone="subdued" style={{
-                    margin: '0 0 16px 0',
-                    fontSize: '14px',
-                    lineHeight: '1.5',
-                    flex: 1
-                  }}>
-                    {section.description}
-                  </Text>
+                  {/* Tier Badge */}
+                  <div>
+                    {section.isAI ? (
+                      <Badge tone="magic">AI Generated</Badge>
+                    ) : section.tier === 'Premium' ? (
+                      <Badge tone="warning">Premium</Badge>
+                    ) : (
+                      <Badge>Lite</Badge>
+                    )}
+                  </div>
 
                   {/* Buttons Row - Install Dropdown + Preview Icon */}
                   <InlineStack gap="200">
