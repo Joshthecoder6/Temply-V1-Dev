@@ -14,8 +14,10 @@ import {
   List,
   Toast,
   Spinner,
+  Popover,
+  ActionList,
 } from "@shopify/polaris";
-import { ChevronLeftIcon, ChevronRightIcon, ExternalIcon, ViewIcon } from "@shopify/polaris-icons";
+import { ChevronLeftIcon, ChevronRightIcon, ExternalIcon, ViewIcon, ChevronDownIcon } from "@shopify/polaris-icons";
 import prisma from "../db.server";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
@@ -114,7 +116,7 @@ export default function ThemeSections() {
   const [activeCarouselIndex, setActiveCarouselIndex] = useState(0);
 
   // Theme installation states
-  const [isThemeModalOpen, setIsThemeModalOpen] = useState(false);
+  const [openDropdownSectionId, setOpenDropdownSectionId] = useState<string | null>(null);
   const [selectedSectionForInstall, setSelectedSectionForInstall] = useState<SectionType | null>(null);
   const [themes, setThemes] = useState<Theme[]>([]);
   const [isLoadingThemes, setIsLoadingThemes] = useState(false);
@@ -137,35 +139,45 @@ export default function ThemeSections() {
     setIsModalOpen(true);
   };
 
-  // Handler für Install Button
-  const handleInstallClick = async (section: SectionType) => {
-    setSelectedSectionForInstall(section);
-    setIsThemeModalOpen(true);
-    setIsLoadingThemes(true);
+  // Handler für Install Dropdown Toggle
+  const handleInstallDropdownToggle = async (section: SectionType) => {
+    const isCurrentlyOpen = openDropdownSectionId === section.id;
 
-    try {
-      const response = await fetch('/app/api/themes/list');
-      const data = await response.json();
+    if (isCurrentlyOpen) {
+      setOpenDropdownSectionId(null);
+    } else {
+      setSelectedSectionForInstall(section);
+      setOpenDropdownSectionId(section.id);
 
-      if (data.success) {
-        setThemes(data.themes);
-      } else {
-        setToastMessage(data.error || 'Failed to load themes');
-        setToastError(true);
+      // Load themes if not already loaded
+      if (themes.length === 0) {
+        setIsLoadingThemes(true);
+        try {
+          const response = await fetch('/app/api/themes/list');
+          const data = await response.json();
+
+          if (data.success) {
+            setThemes(data.themes);
+          } else {
+            setToastMessage(data.error || 'Failed to load themes');
+            setToastError(true);
+          }
+        } catch (error) {
+          setToastMessage('Failed to load themes');
+          setToastError(true);
+        } finally {
+          setIsLoadingThemes(false);
+        }
       }
-    } catch (error) {
-      setToastMessage('Failed to load themes');
-      setToastError(true);
-    } finally {
-      setIsLoadingThemes(false);
     }
   };
 
-  //Handler für Theme-Auswahl
+  // Handler für Theme-Auswahl
   const handleThemeSelect = async (theme: Theme) => {
     if (!selectedSectionForInstall) return;
 
     setIsInstalling(true);
+    setOpenDropdownSectionId(null); // Close dropdown
 
     try {
       const response = await fetch('/app/api/themes/install-section', {
@@ -184,7 +196,6 @@ export default function ThemeSections() {
       if (data.success) {
         setToastMessage(data.message || 'Section installed successfully!');
         setToastError(false);
-        setIsThemeModalOpen(false);
       } else {
         setToastMessage(data.error || 'Installation failed');
         setToastError(true);
@@ -437,23 +448,53 @@ export default function ThemeSections() {
                     {section.description}
                   </Text>
 
-                  {/* Buttons Row - Install + Preview */}
+                  {/* Buttons Row - Install Dropdown + Preview Icon */}
                   <InlineStack gap="200">
-                    <Button
-                      variant="primary"
-                      size="slim"
-                      onClick={() => handleInstallClick(section)}
-                    >
-                      Install
-                    </Button>
+                    <div style={{ flex: 1 }}>
+                      <Popover
+                        active={openDropdownSectionId === section.id}
+                        activator={
+                          <Button
+                            variant="primary"
+                            size="medium"
+                            fullWidth
+                            icon={ChevronDownIcon}
+                            onClick={() => handleInstallDropdownToggle(section)}
+                            loading={isLoadingThemes && openDropdownSectionId === section.id}
+                          >
+                            Install
+                          </Button>
+                        }
+                        onClose={() => setOpenDropdownSectionId(null)}
+                        preferredAlignment="left"
+                      >
+                        {isLoadingThemes ? (
+                          <div style={{ padding: '20px', textAlign: 'center' }}>
+                            <Spinner size="small" />
+                          </div>
+                        ) : themes.length > 0 ? (
+                          <ActionList
+                            items={themes.map((theme) => ({
+                              content: theme.role === 'main' ? `${theme.name} (Current theme)` : theme.name,
+                              onAction: () => handleThemeSelect(theme),
+                              disabled: isInstalling
+                            }))}
+                          />
+                        ) : (
+                          <div style={{ padding: '12px' }}>
+                            <Text as="p" variant="bodySm" tone="subdued">
+                              No themes found
+                            </Text>
+                          </div>
+                        )}
+                      </Popover>
+                    </div>
                     <Button
                       variant="secondary"
-                      size="slim"
+                      size="medium"
                       icon={ViewIcon}
                       onClick={() => handlePreviewClick(section)}
-                    >
-                      Preview
-                    </Button>
+                    />
                   </InlineStack>
                 </div>
               </div>
@@ -878,60 +919,6 @@ export default function ThemeSections() {
         </Modal>
       )}
 
-      {/* Theme Selection Modal */}
-      <Modal
-        open={isThemeModalOpen}
-        onClose={() => setIsThemeModalOpen(false)}
-        title={`Install ${selectedSectionForInstall?.name || 'Section'}`}
-        primaryAction={{
-          content: 'Cancel',
-          onAction: () => setIsThemeModalOpen(false),
-        }}
-      >
-        <Modal.Section>
-          <BlockStack gap="400">
-            <Text as="p" variant="bodyMd">
-              Choose a theme to install this section to:
-            </Text>
-
-            {isLoadingThemes ? (
-              <div style={{ display: 'flex', justifyContent: 'center', padding: '40px' }}>
-                <Spinner size="large" />
-              </div>
-            ) : themes.length > 0 ? (
-              <BlockStack gap="300">
-                {themes.map((theme) => (
-                  <Card key={theme.id}>
-                    <InlineStack align="space-between" blockAlign="center">
-                      <BlockStack gap="100">
-                        <Text as="h3" variant="headingMd" fontWeight="semibold">
-                          {theme.name}
-                        </Text>
-                        <InlineStack gap="200">
-                          <Badge tone={theme.role === 'main' ? 'success' : 'info'}>
-                            {theme.role === 'main' ? 'Published' : theme.role}
-                          </Badge>
-                        </InlineStack>
-                      </BlockStack>
-                      <Button
-                        variant="primary"
-                        onClick={() => handleThemeSelect(theme)}
-                        loading={isInstalling}
-                      >
-                        Install Here
-                      </Button>
-                    </InlineStack>
-                  </Card>
-                ))}
-              </BlockStack>
-            ) : (
-              <Text as="p" variant="bodyMd" tone="subdued">
-                No themes found. Please create a theme first.
-              </Text>
-            )}
-          </BlockStack>
-        </Modal.Section>
-      </Modal>
 
       {/* Toast for success/error messages */}
       {toastMessage && (
