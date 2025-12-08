@@ -12,8 +12,10 @@ import {
   Modal,
   Badge,
   List,
+  Toast,
+  Spinner,
 } from "@shopify/polaris";
-import { ChevronLeftIcon, ChevronRightIcon, ExternalIcon } from "@shopify/polaris-icons";
+import { ChevronLeftIcon, ChevronRightIcon, ExternalIcon, ViewIcon } from "@shopify/polaris-icons";
 import prisma from "../db.server";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
@@ -53,6 +55,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       filename: `${section.name}.liquid`,
       liquidCode: section.liquidCode,
       editorName: section.editorName,
+      tier: section.tier, // "Lite" or "Premium"
       isAI: false
     }));
 
@@ -65,11 +68,12 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       filename: `${aiSection.sectionName}.liquid`,
       liquidCode: aiSection.liquidCode || '',
       editorName: `TP-AI: ${aiSection.sectionName}`,
+      tier: 'AI Generated', // AI sections always get "AI Generated"
       isAI: true
     }));
 
-    // Kombiniere beide Listen
-    const allSections = [...formattedSections, ...formattedAISections];
+    // Kombiniere beide Listen - AI Sections zuerst
+    const allSections = [...formattedAISections, ...formattedSections];
 
     console.log(`[Theme Sections Loader] Returning ${allSections.length} total sections (${formattedSections.length} normal + ${formattedAISections.length} AI)`);
     return { sections: allSections };
@@ -89,7 +93,17 @@ type SectionType = {
   filename: string;
   liquidCode?: string;
   editorName?: string;
+  tier: string; // "Lite", "Premium", or "AI Generated"
   isAI?: boolean; // Flag for AI-generated sections
+};
+
+// Theme Type
+type Theme = {
+  id: string;
+  name: string;
+  role: 'main' | 'unpublished' | 'development';
+  createdAt: string;
+  updatedAt: string;
 };
 
 export default function ThemeSections() {
@@ -99,6 +113,15 @@ export default function ThemeSections() {
   const [selectedSection, setSelectedSection] = useState<SectionType | null>(null);
   const [activeCarouselIndex, setActiveCarouselIndex] = useState(0);
 
+  // Theme installation states
+  const [isThemeModalOpen, setIsThemeModalOpen] = useState(false);
+  const [selectedSectionForInstall, setSelectedSectionForInstall] = useState<SectionType | null>(null);
+  const [themes, setThemes] = useState<Theme[]>([]);
+  const [isLoadingThemes, setIsLoadingThemes] = useState(false);
+  const [isInstalling, setIsInstalling] = useState(false);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [toastError, setToastError] = useState(false);
+
   // Verwende Sections aus DB
   const sections = loaderData?.sections || [];
   const themeSections = sections;
@@ -107,11 +130,71 @@ export default function ThemeSections() {
   console.log('[Theme Sections Component] Loaded sections:', sections.length);
   console.log('[Theme Sections Component] Section names:', sections.map(s => s.name));
 
-  // Handler für "View section" Button
-  const handleViewSection = (section: SectionType) => {
+  // Handler für Preview Button (Auge Icon)
+  const handlePreviewClick = (section: SectionType) => {
     setSelectedSection(section);
     setActiveCarouselIndex(0);
     setIsModalOpen(true);
+  };
+
+  // Handler für Install Button
+  const handleInstallClick = async (section: SectionType) => {
+    setSelectedSectionForInstall(section);
+    setIsThemeModalOpen(true);
+    setIsLoadingThemes(true);
+
+    try {
+      const response = await fetch('/app/api/themes/list');
+      const data = await response.json();
+
+      if (data.success) {
+        setThemes(data.themes);
+      } else {
+        setToastMessage(data.error || 'Failed to load themes');
+        setToastError(true);
+      }
+    } catch (error) {
+      setToastMessage('Failed to load themes');
+      setToastError(true);
+    } finally {
+      setIsLoadingThemes(false);
+    }
+  };
+
+  //Handler für Theme-Auswahl
+  const handleThemeSelect = async (theme: Theme) => {
+    if (!selectedSectionForInstall) return;
+
+    setIsInstalling(true);
+
+    try {
+      const response = await fetch('/app/api/themes/install-section', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          themeId: theme.id,
+          sectionCode: selectedSectionForInstall.liquidCode,
+          sectionName: selectedSectionForInstall.filename.replace('.liquid', ''),
+          themeRole: theme.role
+        })
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        setToastMessage(data.message || 'Section installed successfully!');
+        setToastError(false);
+        setIsThemeModalOpen(false);
+      } else {
+        setToastMessage(data.error || 'Installation failed');
+        setToastError(true);
+      }
+    } catch (error) {
+      setToastMessage('Installation failed');
+      setToastError(true);
+    } finally {
+      setIsInstalling(false);
+    }
   };
 
   // Carousel Navigation
@@ -354,15 +437,24 @@ export default function ThemeSections() {
                     {section.description}
                   </Text>
 
-                  {/* Button - kleiner, linksbündig */}
-                  <div style={{ width: 'auto' }}>
+                  {/* Buttons Row - Install + Preview */}
+                  <InlineStack gap="200">
+                    <Button
+                      variant="primary"
+                      size="slim"
+                      onClick={() => handleInstallClick(section)}
+                    >
+                      Install
+                    </Button>
                     <Button
                       variant="secondary"
-                      onClick={() => handleViewSection(section)}
+                      size="slim"
+                      icon={ViewIcon}
+                      onClick={() => handlePreviewClick(section)}
                     >
-                      View section
+                      Preview
                     </Button>
-                  </div>
+                  </InlineStack>
                 </div>
               </div>
             ))}
@@ -784,6 +876,70 @@ export default function ThemeSections() {
             </div>
           </div>
         </Modal>
+      )}
+
+      {/* Theme Selection Modal */}
+      <Modal
+        open={isThemeModalOpen}
+        onClose={() => setIsThemeModalOpen(false)}
+        title={`Install ${selectedSectionForInstall?.name || 'Section'}`}
+        primaryAction={{
+          content: 'Cancel',
+          onAction: () => setIsThemeModalOpen(false),
+        }}
+      >
+        <Modal.Section>
+          <BlockStack gap="400">
+            <Text as="p" variant="bodyMd">
+              Choose a theme to install this section to:
+            </Text>
+
+            {isLoadingThemes ? (
+              <div style={{ display: 'flex', justifyContent: 'center', padding: '40px' }}>
+                <Spinner size="large" />
+              </div>
+            ) : themes.length > 0 ? (
+              <BlockStack gap="300">
+                {themes.map((theme) => (
+                  <Card key={theme.id}>
+                    <InlineStack align="space-between" blockAlign="center">
+                      <BlockStack gap="100">
+                        <Text as="h3" variant="headingMd" fontWeight="semibold">
+                          {theme.name}
+                        </Text>
+                        <InlineStack gap="200">
+                          <Badge tone={theme.role === 'main' ? 'success' : 'info'}>
+                            {theme.role === 'main' ? 'Published' : theme.role}
+                          </Badge>
+                        </InlineStack>
+                      </BlockStack>
+                      <Button
+                        variant="primary"
+                        onClick={() => handleThemeSelect(theme)}
+                        loading={isInstalling}
+                      >
+                        Install Here
+                      </Button>
+                    </InlineStack>
+                  </Card>
+                ))}
+              </BlockStack>
+            ) : (
+              <Text as="p" variant="bodyMd" tone="subdued">
+                No themes found. Please create a theme first.
+              </Text>
+            )}
+          </BlockStack>
+        </Modal.Section>
+      </Modal>
+
+      {/* Toast for success/error messages */}
+      {toastMessage && (
+        <Toast
+          content={toastMessage}
+          error={toastError}
+          onDismiss={() => setToastMessage(null)}
+        />
       )}
     </Page>
   );
