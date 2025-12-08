@@ -455,10 +455,14 @@ export default function ThemeSections() {
                         active={openDropdownSectionId === section.id}
                         activator={
                           <Button
-                            variant="primary"
+                            variant="secondary"
                             size="medium"
                             fullWidth
-                            icon={ChevronDownIcon}
+                            icon={
+                              <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 12 12" fill="none">
+                                <path fillRule="evenodd" clipRule="evenodd" d="M3.17094 4.69657C3.24892 4.61869 3.35462 4.57495 3.46483 4.57495C3.57503 4.57495 3.68074 4.61869 3.75871 4.69657L5.68284 6.6207L7.60696 4.69657C7.64503 4.65571 7.69095 4.62294 7.74196 4.60021C7.79297 4.57748 7.84804 4.56526 7.90388 4.56427C7.95972 4.56329 8.01519 4.57356 8.06697 4.59448C8.11876 4.61539 8.1658 4.64653 8.20529 4.68602C8.24478 4.72551 8.27591 4.77255 8.29683 4.82433C8.31775 4.87612 8.32802 4.93158 8.32703 4.98742C8.32605 5.04326 8.31382 5.09833 8.29109 5.14935C8.26836 5.20036 8.23559 5.24627 8.19473 5.28435L5.97672 7.50236C5.89875 7.58024 5.79304 7.62398 5.68284 7.62398C5.57263 7.62398 5.46693 7.58024 5.38895 7.50236L3.17094 5.28435C3.09306 5.20637 3.04932 5.10067 3.04932 4.99046C3.04932 4.88025 3.09306 4.77455 3.17094 4.69657Z" fill="#4A4A4A" />
+                              </svg>
+                            }
                             onClick={() => handleInstallDropdownToggle(section)}
                             loading={isLoadingThemes && openDropdownSectionId === section.id}
                           >
