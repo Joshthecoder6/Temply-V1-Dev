@@ -459,13 +459,22 @@ export default function ThemeSections() {
                             <Spinner size="small" />
                           </div>
                         ) : themes.length > 0 ? (
-                          <ActionList
-                            items={themes.map((theme) => ({
-                              content: theme.role === 'main' ? `${theme.name} (Current theme)` : theme.name,
-                              onAction: () => handleThemeSelect(theme),
-                              disabled: isInstalling
-                            }))}
-                          />
+                          <div style={{ padding: '8px', minWidth: '200px' }}>
+                            <BlockStack gap="100">
+                              {themes.map((theme) => (
+                                <Button
+                                  key={theme.id}
+                                  onClick={() => handleThemeSelect(theme)}
+                                  disabled={isInstalling}
+                                  fullWidth
+                                  textAlign="start"
+                                  variant="plain"
+                                >
+                                  {theme.role === 'main' ? `${theme.name} (Current theme)` : theme.name}
+                                </Button>
+                              ))}
+                            </BlockStack>
+                          </div>
                         ) : (
                           <div style={{ padding: '12px' }}>
                             <Text as="p" variant="bodySm" tone="subdued">
