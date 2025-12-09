@@ -156,6 +156,7 @@ export default function ThemeSections() {
           const data = await response.json();
 
           if (data.success) {
+            console.log('✅ Themes loaded from API:', data.themes);
             setThemes(data.themes);
           } else {
             setToastMessage(data.error || 'Failed to load themes');
