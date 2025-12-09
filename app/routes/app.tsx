@@ -20,6 +20,13 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     metadata: { shop, source: 'app_root' }
   });
 
+  console.log('🔍 MANTLE CUSTOMER TOKEN DEBUG:', {
+    shop,
+    customerApiToken: customer.customerApiToken,
+    customerEmail: customer.email,
+    customerId: customer.id
+  });
+
   // eslint-disable-next-line no-undef
   return {
     apiKey: process.env.SHOPIFY_API_KEY || "",
