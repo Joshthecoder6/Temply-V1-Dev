@@ -13,11 +13,8 @@ import {
   Badge,
   List,
   Toast,
-  Spinner,
-  Popover,
-  ActionList,
 } from "@shopify/polaris";
-import { ChevronLeftIcon, ChevronRightIcon, ExternalIcon, ViewIcon, ChevronDownIcon } from "@shopify/polaris-icons";
+import { ChevronLeftIcon, ChevronRightIcon, ExternalIcon, ViewIcon } from "@shopify/polaris-icons";
 import prisma from "../db.server";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
@@ -116,10 +113,7 @@ export default function ThemeSections() {
   const [activeCarouselIndex, setActiveCarouselIndex] = useState(0);
 
   // Theme installation states
-  const [openDropdownSectionId, setOpenDropdownSectionId] = useState<string | null>(null);
-  const [selectedSectionForInstall, setSelectedSectionForInstall] = useState<SectionType | null>(null);
   const [themes, setThemes] = useState<Theme[]>([]);
-  const [isLoadingThemes, setIsLoadingThemes] = useState(false);
   const [isInstalling, setIsInstalling] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [toastError, setToastError] = useState(false);
@@ -139,78 +133,60 @@ export default function ThemeSections() {
     setIsModalOpen(true);
   };
 
-  // Handler für Install Dropdown Toggle
-  const handleInstallDropdownToggle = async (section: SectionType) => {
-    const isCurrentlyOpen = openDropdownSectionId === section.id;
-
-    if (isCurrentlyOpen) {
-      setOpenDropdownSectionId(null);
-    } else {
-      setSelectedSectionForInstall(section);
-      setOpenDropdownSectionId(section.id);
-
-      // Load themes if not already loaded
-      if (themes.length === 0) {
-        setIsLoadingThemes(true);
-        try {
-          const response = await fetch('/app/api/themes/list');
-          const data = await response.json();
-
-          if (data.success) {
-            setThemes(data.themes);
-          } else {
-            setToastMessage(data.error || 'Failed to load themes');
-            setToastError(true);
-          }
-        } catch (error) {
-          setToastMessage('Failed to load themes');
-          setToastError(true);
-        } finally {
-          setIsLoadingThemes(false);
-        }
-      }
-    }
-  };
-
-  // Handler für Theme-Auswahl
-  const handleThemeSelect = async (theme: Theme) => {
-    if (!selectedSectionForInstall) return;
-
+  // Handler für direkten Install (installiert in main theme)
+  const handleDirectInstall = async (section: SectionType) => {
     setIsInstalling(true);
 
     try {
-      const response = await fetch('/app/api/themes/install-section', {
+      // Lade Themes falls noch nicht geladen
+      let themesToUse = themes;
+      if (themesToUse.length === 0) {
+        const response = await fetch('/app/api/themes/list');
+        const data = await response.json();
+        if (data.success) {
+          themesToUse = data.themes;
+          setThemes(data.themes);
+        } else {
+          throw new Error(data.error || 'Failed to load themes');
+        }
+      }
+
+      // Finde das main theme
+      const mainTheme = themesToUse.find(t => t.role === 'main');
+      if (!mainTheme) {
+        throw new Error('No main theme found');
+      }
+
+      // Installiere die Section
+      const installResponse = await fetch('/app/api/themes/install-section', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          themeId: theme.id,
-          sectionCode: selectedSectionForInstall.liquidCode,
-          sectionName: selectedSectionForInstall.filename.replace('.liquid', ''),
-          themeRole: theme.role
+          themeId: mainTheme.id,
+          sectionCode: section.liquidCode,
+          sectionName: section.filename.replace('.liquid', ''),
+          themeRole: mainTheme.role
         })
       });
 
-      const data = await response.json();
+      const installData = await installResponse.json();
 
-      if (data.success) {
-        setToastMessage(data.message || 'Section installed successfully!');
+      if (installData.success) {
+        setToastMessage(installData.message || 'Section installed successfully!');
         setToastError(false);
       } else {
-        setToastMessage(data.error || 'Installation failed');
+        setToastMessage(installData.error || 'Installation failed');
         setToastError(true);
       }
     } catch (error) {
-      setToastMessage('Installation failed');
+      setToastMessage(error instanceof Error ? error.message : 'Installation failed');
       setToastError(true);
     } finally {
       setIsInstalling(false);
-      // Close dropdown after installation is complete and all state updates are done
-      // Using a longer timeout to ensure all React updates have been processed
-      setTimeout(() => {
-        setOpenDropdownSectionId(null);
-      }, 100);
     }
   };
+
+
 
   // Carousel Navigation
   const handleCarouselNext = () => {
@@ -425,65 +401,17 @@ export default function ThemeSections() {
                     )}
                   </div>
 
-                  {/* Buttons Row - Install Dropdown + Preview Icon */}
+                  {/* Buttons Row - Direct Install + Preview Icon */}
                   <InlineStack gap="200">
-                    <div style={{ flex: 1 }}>
-                      <Popover
-                        active={openDropdownSectionId === section.id}
-                        activator={
-                          <Button
-                            variant="secondary"
-                            size="medium"
-                            fullWidth
-                            icon={
-                              <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 12 12" fill="none">
-                                <path fillRule="evenodd" clipRule="evenodd" d="M3.17094 4.69657C3.24892 4.61869 3.35462 4.57495 3.46483 4.57495C3.57503 4.57495 3.68074 4.61869 3.75871 4.69657L5.68284 6.6207L7.60696 4.69657C7.64503 4.65571 7.69095 4.62294 7.74196 4.60021C7.79297 4.57748 7.84804 4.56526 7.90388 4.56427C7.95972 4.56329 8.01519 4.57356 8.06697 4.59448C8.11876 4.61539 8.1658 4.64653 8.20529 4.68602C8.24478 4.72551 8.27591 4.77255 8.29683 4.82433C8.31775 4.87612 8.32802 4.93158 8.32703 4.98742C8.32605 5.04326 8.31382 5.09833 8.29109 5.14935C8.26836 5.20036 8.23559 5.24627 8.19473 5.28435L5.97672 7.50236C5.89875 7.58024 5.79304 7.62398 5.68284 7.62398C5.57263 7.62398 5.46693 7.58024 5.38895 7.50236L3.17094 5.28435C3.09306 5.20637 3.04932 5.10067 3.04932 4.99046C3.04932 4.88025 3.09306 4.77455 3.17094 4.69657Z" fill="#4A4A4A" />
-                              </svg>
-                            }
-                            onClick={() => handleInstallDropdownToggle(section)}
-                            loading={isLoadingThemes && openDropdownSectionId === section.id}
-                          >
-                            Install
-                          </Button>
-                        }
-                        onClose={() => {
-                          // Prevent closing if installation is in progress
-                          if (!isInstalling) {
-                            setOpenDropdownSectionId(null);
-                          }
-                        }}
-                        preferredAlignment="left"
-                      >
-                        {isLoadingThemes ? (
-                          <div style={{ padding: '20px', textAlign: 'center' }}>
-                            <Spinner size="small" />
-                          </div>
-                        ) : themes.length > 0 ? (
-                          <div style={{ padding: '8px', minWidth: '200px' }}>
-                            <BlockStack gap="100">
-                              {themes.map((theme) => (
-                                <Button
-                                  key={theme.id}
-                                  onClick={() => handleThemeSelect(theme)}
-                                  disabled={isInstalling}
-                                  fullWidth
-                                  textAlign="start"
-                                  variant="plain"
-                                >
-                                  {theme.role === 'main' ? `${theme.name} (Current theme)` : theme.name}
-                                </Button>
-                              ))}
-                            </BlockStack>
-                          </div>
-                        ) : (
-                          <div style={{ padding: '12px' }}>
-                            <Text as="p" variant="bodySm" tone="subdued">
-                              No themes found
-                            </Text>
-                          </div>
-                        )}
-                      </Popover>
-                    </div>
+                    <Button
+                      variant="secondary"
+                      size="medium"
+                      fullWidth
+                      onClick={() => handleDirectInstall(section)}
+                      loading={isInstalling}
+                    >
+                      Install
+                    </Button>
                     <Button
                       variant="secondary"
                       size="medium"
