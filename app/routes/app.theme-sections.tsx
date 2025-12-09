@@ -178,12 +178,6 @@ export default function ThemeSections() {
 
     setIsInstalling(true);
 
-    // Delay closing dropdown to prevent DOM manipulation race condition
-    // This allows React to finish processing the click event before unmounting the Popover
-    setTimeout(() => {
-      setOpenDropdownSectionId(null);
-    }, 0);
-
     try {
       const response = await fetch('/app/api/themes/install-section', {
         method: 'POST',
@@ -210,6 +204,11 @@ export default function ThemeSections() {
       setToastError(true);
     } finally {
       setIsInstalling(false);
+      // Close dropdown after installation is complete and all state updates are done
+      // Using a longer timeout to ensure all React updates have been processed
+      setTimeout(() => {
+        setOpenDropdownSectionId(null);
+      }, 100);
     }
   };
 
@@ -447,7 +446,12 @@ export default function ThemeSections() {
                             Install
                           </Button>
                         }
-                        onClose={() => setOpenDropdownSectionId(null)}
+                        onClose={() => {
+                          // Prevent closing if installation is in progress
+                          if (!isInstalling) {
+                            setOpenDropdownSectionId(null);
+                          }
+                        }}
                         preferredAlignment="left"
                       >
                         {isLoadingThemes ? (
