@@ -13,6 +13,8 @@ import {
   Badge,
   List,
   Toast,
+  Popover,
+  ActionList,
 } from "@shopify/polaris";
 import { ChevronLeftIcon, ChevronRightIcon, ExternalIcon, ViewIcon } from "@shopify/polaris-icons";
 import prisma from "../db.server";
@@ -113,13 +115,13 @@ export default function ThemeSections() {
   const [activeCarouselIndex, setActiveCarouselIndex] = useState(0);
 
   // Theme installation states
+  const [openDropdownSectionId, setOpenDropdownSectionId] = useState<string | null>(null);
+  const [selectedSectionForInstall, setSelectedSectionForInstall] = useState<SectionType | null>(null);
   const [themes, setThemes] = useState<Theme[]>([]);
+  const [isLoadingThemes, setIsLoadingThemes] = useState(false);
   const [isInstalling, setIsInstalling] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [toastError, setToastError] = useState(false);
-  const [isThemeModalOpen, setIsThemeModalOpen] = useState(false);
-  const [selectedSectionForInstall, setSelectedSectionForInstall] = useState<SectionType | null>(null);
-  const [isLoadingThemes, setIsLoadingThemes] = useState(false);
 
   // Verwende Sections aus DB
   const sections = loaderData?.sections || [];
@@ -136,40 +138,45 @@ export default function ThemeSections() {
     setIsModalOpen(true);
   };
 
-  // Handler für Install Button - öffnet Theme-Auswahl Modal
-  const handleInstallClick = async (section: SectionType) => {
-    setSelectedSectionForInstall(section);
+  // Handler für Install Dropdown Toggle
+  const handleInstallDropdownToggle = async (section: SectionType) => {
+    const isCurrentlyOpen = openDropdownSectionId === section.id;
 
-    // Lade Themes falls noch nicht geladen
-    if (themes.length === 0) {
-      setIsLoadingThemes(true);
-      try {
-        const response = await fetch('/app/api/themes/list');
-        const data = await response.json();
-        if (data.success) {
-          setThemes(data.themes);
-        } else {
-          setToastMessage(data.error || 'Failed to load themes');
+    if (isCurrentlyOpen) {
+      setOpenDropdownSectionId(null);
+    } else {
+      setSelectedSectionForInstall(section);
+      setOpenDropdownSectionId(section.id);
+
+      // Load themes if not already loaded
+      if (themes.length === 0) {
+        setIsLoadingThemes(true);
+        try {
+          const response = await fetch('/app/api/themes/list');
+          const data = await response.json();
+
+          if (data.success) {
+            setThemes(data.themes);
+          } else {
+            setToastMessage(data.error || 'Failed to load themes');
+            setToastError(true);
+          }
+        } catch (error) {
+          setToastMessage('Failed to load themes');
           setToastError(true);
-          return;
+        } finally {
+          setIsLoadingThemes(false);
         }
-      } catch (error) {
-        setToastMessage('Failed to load themes');
-        setToastError(true);
-        return;
-      } finally {
-        setIsLoadingThemes(false);
       }
     }
-
-    setIsThemeModalOpen(true);
   };
 
-  // Handler für Theme-Auswahl im Modal
+  // Handler für Theme-Auswahl
   const handleThemeSelect = async (theme: Theme) => {
     if (!selectedSectionForInstall) return;
 
     setIsInstalling(true);
+    setOpenDropdownSectionId(null); // Close dropdown
 
     try {
       const response = await fetch('/app/api/themes/install-section', {
@@ -188,7 +195,6 @@ export default function ThemeSections() {
       if (data.success) {
         setToastMessage(data.message || 'Section installed successfully!');
         setToastError(false);
-        setIsThemeModalOpen(false);
       } else {
         setToastMessage(data.error || 'Installation failed');
         setToastError(true);
@@ -416,17 +422,47 @@ export default function ThemeSections() {
                     )}
                   </div>
 
-                  {/* Buttons Row - Install + Preview Icon */}
+                  {/* Buttons Row - Install Dropdown + Preview Icon */}
                   <InlineStack gap="200">
-                    <Button
-                      variant="secondary"
-                      size="medium"
-                      fullWidth
-                      onClick={() => handleInstallClick(section)}
-                      loading={isLoadingThemes || isInstalling}
-                    >
-                      Install
-                    </Button>
+                    <div style={{ flex: 1 }}>
+                      <Popover
+                        active={openDropdownSectionId === section.id}
+                        activator={
+                          <Button
+                            variant="secondary"
+                            size="medium"
+                            fullWidth
+                            onClick={() => handleInstallDropdownToggle(section)}
+                            loading={isLoadingThemes && openDropdownSectionId === section.id}
+                            disclosure="down"
+                          >
+                            Install
+                          </Button>
+                        }
+                        onClose={() => setOpenDropdownSectionId(null)}
+                        preferredAlignment="left"
+                      >
+                        {isLoadingThemes ? (
+                          <div style={{ padding: '20px', textAlign: 'center' }}>
+                            <Text as="p">Loading themes...</Text>
+                          </div>
+                        ) : themes.length > 0 ? (
+                          <ActionList
+                            items={themes.map((theme) => ({
+                              content: theme.role === 'main' ? `${theme.name} (Current theme)` : theme.name,
+                              onAction: () => handleThemeSelect(theme),
+                              disabled: isInstalling
+                            }))}
+                          />
+                        ) : (
+                          <div style={{ padding: '12px' }}>
+                            <Text as="p" variant="bodySm" tone="subdued">
+                              No themes found
+                            </Text>
+                          </div>
+                        )}
+                      </Popover>
+                    </div>
                     <Button
                       variant="secondary"
                       size="medium"
@@ -856,60 +892,6 @@ export default function ThemeSections() {
           </div>
         </Modal>
       )}
-
-      {/* Theme Selection Modal */}
-      <Modal
-        open={isThemeModalOpen}
-        onClose={() => !isInstalling && setIsThemeModalOpen(false)}
-        title="Select Theme for Installation"
-        primaryAction={{
-          content: "Cancel",
-          onAction: () => setIsThemeModalOpen(false),
-          disabled: isInstalling
-        }}
-      >
-        <Modal.Section>
-          <BlockStack gap="400">
-            <Text as="p" variant="bodyMd">
-              Choose which theme to install the section "{selectedSectionForInstall?.name}" to:
-            </Text>
-
-            {isLoadingThemes ? (
-              <div style={{ textAlign: 'center', padding: '40px' }}>
-                <Text as="p">Loading themes...</Text>
-              </div>
-            ) : (
-              <BlockStack gap="200">
-                {themes.map((theme) => (
-                  <Button
-                    key={theme.id}
-                    onClick={() => handleThemeSelect(theme)}
-                    disabled={isInstalling}
-                    fullWidth
-                    textAlign="start"
-                  >
-                    <InlineStack gap="200" align="space-between" blockAlign="center">
-                      <Text as="span" fontWeight="medium">
-                        {theme.name}
-                      </Text>
-                      {theme.role === 'main' && (
-                        <Badge tone="success">Current Theme</Badge>
-                      )}
-                    </InlineStack>
-                  </Button>
-                ))}
-              </BlockStack>
-            )}
-
-            {isInstalling && (
-              <div style={{ textAlign: 'center', padding: '20px' }}>
-                <Text as="p">Installing section...</Text>
-              </div>
-            )}
-          </BlockStack>
-        </Modal.Section>
-      </Modal>
-
 
       {toastMessage && (
         <Toast
