@@ -177,7 +177,12 @@ export default function ThemeSections() {
     if (!selectedSectionForInstall) return;
 
     setIsInstalling(true);
-    setOpenDropdownSectionId(null); // Close dropdown
+
+    // Delay closing dropdown to prevent DOM manipulation race condition
+    // This allows React to finish processing the click event before unmounting the Popover
+    setTimeout(() => {
+      setOpenDropdownSectionId(null);
+    }, 0);
 
     try {
       const response = await fetch('/app/api/themes/install-section', {
