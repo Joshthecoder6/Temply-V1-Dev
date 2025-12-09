@@ -436,7 +436,7 @@ export default function ThemeSections() {
                             loading={isLoadingThemes && openDropdownSectionId === section.id}
                             disclosure="down"
                           >
-                            Install
+                            {!(isLoadingThemes && openDropdownSectionId === section.id) && 'Install'}
                           </Button>
                         }
                         onClose={() => setOpenDropdownSectionId(null)}
