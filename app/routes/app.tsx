@@ -2,7 +2,7 @@ import type { HeadersFunction, LoaderFunctionArgs } from "react-router";
 import { Outlet, useLoaderData, useRouteError, useLocation } from "react-router";
 import { boundary } from "@shopify/shopify-app-react-router/server";
 import { AppProvider as ShopifyAppProvider } from "@shopify/shopify-app-react-router/react";
-import { AppProvider as PolarisAppProvider } from "@shopify/polaris";
+import { AppProvider as PolarisAppProvider, Frame } from "@shopify/polaris";
 import { MantleAppProvider } from "../components/MantleAppProvider";
 import { useEffect } from "react";
 
@@ -46,22 +46,24 @@ export default function App() {
 
   return (
     <PolarisAppProvider i18n={{}}>
-      <ShopifyAppProvider embedded apiKey={apiKey}>
-        <MantleAppProvider appId={appId} customerApiToken={customerApiToken}>
-          <s-app-nav>
-            <s-link href="/app">Dashboard</s-link>
-            <s-link href="/app/funnels">Prebuild Funnels</s-link>
-            <s-link href="/app/my-pages">My Pages</s-link>
-            <s-link href="/app/theme-sections">Theme Sections</s-link>
-            <s-link href="/app/ai-generator">✨ Temply AI</s-link>
-            <s-link href="/app/features-vote">Features Vote</s-link>
-            <s-link href="/app/pricing">Pricing</s-link>
-            <s-link href="/app/help">Help</s-link>
-            <s-link href="/app/onboarding">Onboarding</s-link>
-          </s-app-nav>
-          <Outlet />
-        </MantleAppProvider>
-      </ShopifyAppProvider>
+      <Frame>
+        <ShopifyAppProvider embedded apiKey={apiKey}>
+          <MantleAppProvider appId={appId} customerApiToken={customerApiToken}>
+            <s-app-nav>
+              <s-link href="/app">Dashboard</s-link>
+              <s-link href="/app/funnels">Prebuild Funnels</s-link>
+              <s-link href="/app/my-pages">My Pages</s-link>
+              <s-link href="/app/theme-sections">Theme Sections</s-link>
+              <s-link href="/app/ai-generator">✨ Temply AI</s-link>
+              <s-link href="/app/features-vote">Features Vote</s-link>
+              <s-link href="/app/pricing">Pricing</s-link>
+              <s-link href="/app/help">Help</s-link>
+              <s-link href="/app/onboarding">Onboarding</s-link>
+            </s-app-nav>
+            <Outlet />
+          </MantleAppProvider>
+        </ShopifyAppProvider>
+      </Frame>
     </PolarisAppProvider>
   );
 }
