@@ -555,24 +555,10 @@ export default function AIGenerator() {
             // Replace Liquid variables
             let processedCode = liquidCode;
 
-            // Remove Liquid control flow tags (if, unless, for, etc.)
-            // Updated to handle {%-, {% and -%}, %} variants
-            processedCode = processedCode.replace(/\{%-?\s*if\s+.*?-?%\}/g, '');
-            processedCode = processedCode.replace(/\{%-?\s*unless\s+.*?-?%\}/g, '');
-            processedCode = processedCode.replace(/\{%-?\s*elsif\s+.*?-?%\}/g, '');
-            processedCode = processedCode.replace(/\{%-?\s*else\s*-?%\}/g, '');
-            processedCode = processedCode.replace(/\{%-?\s*endif\s*-?%\}/g, '');
-            processedCode = processedCode.replace(/\{%-?\s*endunless\s*-?%\}/g, '');
-            processedCode = processedCode.replace(/\{%-?\s*for\s+.*?-?%\}/g, '');
-            processedCode = processedCode.replace(/\{%-?\s*endfor\s*-?%\}/g, '');
-            processedCode = processedCode.replace(/\{%-?\s*assign\s+.*?-?%\}/g, '');
-            processedCode = processedCode.replace(/\{%-?\s*capture\s+.*?-?%\}/g, '');
-            processedCode = processedCode.replace(/\{%-?\s*endcapture\s*-?%\}/g, '');
-
-            // Replace {{ section.settings.* }} with values (including conditions and filters)
-            // Handle {{- and -}} variants as well
+            // First, replace {{ section.settings.* }} with values BEFORE removing tags
+            // This ensures values are filled in before control flow is removed
             processedCode = processedCode.replace(
-                /\{\{-?\s*section\.settings\.(\w+)[^}]*-?\}\}/g,
+                /\{\{-?\s*section\.settings\.(\w+)(?:[^}]*)?-?\}\}/g,
                 (match, settingId) => {
                     const value = mockData.section.settings[settingId];
                     if (value === undefined || value === null || value === '') {
@@ -585,11 +571,22 @@ export default function AIGenerator() {
             // Replace {{ section.id }}
             processedCode = processedCode.replace(/\{\{-?\s*section\.id\s*-?\}\}/g, mockData.section.id);
 
-            // Remove any remaining section.settings.* references (these show as plain text)
-            processedCode = processedCode.replace(/\{\{\s*section\.settings\.\w+\s*\}\}/g, '');
+            // Remove if/endif blocks but KEEP the content inside (if condition is true, show content)
+            // Pattern: {% if condition %}content{% endif %} => content
+            processedCode = processedCode.replace(/\{%-?\s*if\s+[^%]+%\}([\s\S]*?)\{%-?\s*endif\s*-?%\}/g, '$1');
 
-            // Remove other common Liquid patterns
-            processedCode = processedCode.replace(/\{%\s*if\s+section\.settings\.\w+\s*%\}.*?\{%\s*endif\s*%\}/gs, '');
+            // Remove elsif/else blocks (simpler: just remove the tags)
+            processedCode = processedCode.replace(/\{%-?\s*elsif\s+[^%]+%\}/g, '');
+            processedCode = processedCode.replace(/\{%-?\s*else\s*-?%\}/g, '');
+
+            // Remove other control flow tags
+            processedCode = processedCode.replace(/\{%-?\s*unless\s+.*?-?%\}/g, '');
+            processedCode = processedCode.replace(/\{%-?\s*endunless\s*-?%\}/g, '');
+            processedCode = processedCode.replace(/\{%-?\s*for\s+.*?-?%\}/g, '');
+            processedCode = processedCode.replace(/\{%-?\s*endfor\s*-?%\}/g, '');
+            processedCode = processedCode.replace(/\{%-?\s*assign\s+.*?-?%\}/g, '');
+            processedCode = processedCode.replace(/\{%-?\s*capture\s+.*?-?%\}/g, '');
+            processedCode = processedCode.replace(/\{%-?\s*endcapture\s*-?%\}/g, '');
 
             // Remove any remaining Liquid variables and tags
             processedCode = processedCode.replace(/\{\{-?[^}]+-?\}\}/g, '');

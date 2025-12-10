@@ -126,6 +126,8 @@ Your liquidCode MUST follow this EXACT structure used by all Temply sections:
    </script>
 
 5. {% schema %} Block (REQUIRED):
+   CRITICAL: The schema JSON MUST be 100% valid JSON - no trailing commas, proper escaping!
+   
    {% schema %}
    {
      "name": "TP-AI: [Your Section Name]",
@@ -232,16 +234,19 @@ Your liquidCode MUST follow this EXACT structure used by all Temply sections:
      ],
      "presets": [
        {
-         "name": "TP-AI: [Your Section Name]",
-         "blocks": [
-           {
-             "type": "item"
-           }
-         ]
+         "name": "TP-AI: [Your Section Name]"
        }
      ]
    }
    {% endschema %}
+
+   🚨 SCHEMA JSON VALIDATION RULES:
+   - NO trailing commas after the last item in arrays or objects!
+   - All string values must use double quotes "like this"
+   - Numbers should NOT be in quotes (use 64, not "64")
+   - Boolean values: true/false (not "true" or "false")
+   - Validate your JSON is parseable before returning it
+   - The last item in ANY array or object must NOT have a comma after it
 
 🎨 DESIGN REQUIREMENTS (ONLY when NO screenshot is provided):
 - Mobile-first responsive design (test on 320px and up)
