@@ -571,9 +571,14 @@ export default function AIGenerator() {
             // Replace {{ section.id }}
             processedCode = processedCode.replace(/\{\{-?\s*section\.id\s*-?\}\}/g, mockData.section.id);
 
-            // Remove if/endif blocks but KEEP the content inside (if condition is true, show content)
-            // Pattern: {% if condition %}content{% endif %} => content
-            processedCode = processedCode.replace(/\{%-?\s*if\s+[^%]+%\}([\s\S]*?)\{%-?\s*endif\s*-?%\}/g, '$1');
+            // Remove if/endif blocks iteratively to handle nested blocks
+            let prevCode = '';
+            let iterations = 0;
+            while (prevCode !== processedCode && iterations < 10) {
+                prevCode = processedCode;
+                processedCode = processedCode.replace(/\{%-?\s*if\s+[^%]*%\}([\s\S]*?)\{%-?\s*endif\s*-?%\}/g, '$1');
+                iterations++;
+            }
 
             // Remove elsif/else blocks (simpler: just remove the tags)
             processedCode = processedCode.replace(/\{%-?\s*elsif\s+[^%]+%\}/g, '');
@@ -588,9 +593,13 @@ export default function AIGenerator() {
             processedCode = processedCode.replace(/\{%-?\s*capture\s+.*?-?%\}/g, '');
             processedCode = processedCode.replace(/\{%-?\s*endcapture\s*-?%\}/g, '');
 
-            // Remove any remaining Liquid variables and tags
-            processedCode = processedCode.replace(/\{\{-?[^}]+-?\}\}/g, '');
-            processedCode = processedCode.replace(/\{%-?[^}]+-?%\}/g, '');
+            // AGGRESSIVE CLEANUP: Remove ALL remaining Liquid syntax
+            // This catches any {{ section.settings.* }} that weren't replaced
+            processedCode = processedCode.replace(/\{\{[^}]*\}\}/g, '');
+            processedCode = processedCode.replace(/\{%[^}]*%\}/g, '');
+            // Also handle -}} and {%- variants
+            processedCode = processedCode.replace(/\{\{-[^}]*-?\}\}/g, '');
+            processedCode = processedCode.replace(/\{%-[^}]*-?%\}/g, '');
 
             return processedCode;
         } catch (error) {
