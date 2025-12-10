@@ -585,8 +585,15 @@ export default function AIGenerator() {
             // Replace {{ section.id }}
             processedCode = processedCode.replace(/\{\{-?\s*section\.id\s*-?\}\}/g, mockData.section.id);
 
-            // Remove any remaining Liquid variables we haven't handled
+            // Remove any remaining section.settings.* references (these show as plain text)
+            processedCode = processedCode.replace(/\{\{\s*section\.settings\.\w+\s*\}\}/g, '');
+
+            // Remove other common Liquid patterns
+            processedCode = processedCode.replace(/\{%\s*if\s+section\.settings\.\w+\s*%\}.*?\{%\s*endif\s*%\}/gs, '');
+
+            // Remove any remaining Liquid variables and tags
             processedCode = processedCode.replace(/\{\{-?[^}]+-?\}\}/g, '');
+            processedCode = processedCode.replace(/\{%-?[^}]+-?%\}/g, '');
 
             return processedCode;
         } catch (error) {
