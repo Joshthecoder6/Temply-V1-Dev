@@ -650,11 +650,18 @@ export default function AIGenerator() {
         // Use liquidCode if available, otherwise fall back to htmlCode
         let htmlContent = currentSection.htmlCode;
         if (currentSection.liquidCode) {
-            const processedLiquid = parseLiquidCode(currentSection.liquidCode);
-            // Extract HTML from processed Liquid (remove schema and script tags for preview)
-            htmlContent = processedLiquid
-                .replace(/{% schema %}[\s\S]*?{% endschema %}/g, "")
-                .replace(/<script[\s\S]*?<\/script>/g, "");
+            // IMPORTANT: Remove schema and scripts BEFORE parsing Liquid
+            // This prevents the schema JSON from being displayed in the preview
+            let cleanedLiquid = currentSection.liquidCode;
+
+            // Remove {% schema %} block (handle both {% and {%- variants)
+            cleanedLiquid = cleanedLiquid.replace(/\{%-?\s*schema\s*-?%\}[\s\S]*?\{%-?\s*endschema\s*-?%\}/g, "");
+
+            // Remove script tags
+            cleanedLiquid = cleanedLiquid.replace(/<script[\s\S]*?<\/script>/g, "");
+
+            // Now parse the cleaned Liquid code
+            htmlContent = parseLiquidCode(cleanedLiquid);
         }
 
         const combinedCode = `
