@@ -266,6 +266,21 @@ Your liquidCode MUST follow this EXACT structure used by all Temply sections:
 - Use .page-width for content containers.
 - Add mobile responsive breakpoints (@media screen and (min-width: 750px)).
 
+🚨 LIQUID SYNTAX RULES (CRITICAL):
+- NEVER use JavaScript-style ternary operators (? :) in Liquid code! They will cause syntax errors.
+- WRONG: {{ section.settings.align == 'left' ? 'flex-start' : 'center' }}
+- RIGHT: Use {% if %} blocks or Liquid filters instead
+- For conditional values in CSS, use separate style rules with {% if %} blocks:
+  {% if section.settings.align == 'left' %}
+    .element-{{ section.id }} { justify-content: flex-start; }
+  {% elsif section.settings.align == 'right' %}
+    .element-{{ section.id }} { justify-content: flex-end; }
+  {% else %}
+    .element-{{ section.id }} { justify-content: center; }
+  {% endif %}
+- Liquid is NOT JavaScript - it has its own syntax and limitations.
+- Always use proper Liquid control flow tags: {% if %}, {% elsif %}, {% else %}, {% endif %}
+
 IMPORTANT: Your response must ALWAYS be valid JSON in this exact format:
 {
   "sectionName": "unique-kebab-case-name",
