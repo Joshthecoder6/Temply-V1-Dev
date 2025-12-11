@@ -163,7 +163,7 @@ export interface GeneratedSection {
  * Helper to get the model instance
  */
 function getGeminiModel() {
-  const modelName = process.env.GEMINI_MODEL || 'gemini-3.0-pro-preview';
+  const modelName = process.env.GEMINI_MODEL || 'gemini-3.0-pro';
   return genAI.getGenerativeModel({
     model: modelName,
     systemInstruction: SYSTEM_PROMPT,
