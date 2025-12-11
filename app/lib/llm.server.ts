@@ -271,6 +271,11 @@ export async function generateSectionStream(
       lastMessageParts = "Generate the section.";
     }
 
+    // Ensure history is compliant with Gemini API (must start with 'user')
+    if (history.length > 0 && history[0].role !== 'user') {
+      history.unshift({ role: 'user', parts: [{ text: ' ' }] });
+    }
+
     const chat = model.startChat({
       history: history,
       generationConfig: {
@@ -344,6 +349,12 @@ export async function generateSection(
         history = geminiHistory;
         lastMessageParts = "Please continue.";
       }
+    }
+
+
+    // Ensure history is compliant with Gemini API (must start with 'user')
+    if (history.length > 0 && history[0].role !== 'user') {
+      history.unshift({ role: 'user', parts: [{ text: ' ' }] });
     }
 
     const chat = model.startChat({
