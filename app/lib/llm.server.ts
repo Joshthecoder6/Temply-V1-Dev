@@ -175,7 +175,7 @@ function getGeminiModel() {
     ],
   });
 }
-}
+
 
 /**
  * Convert internal ChatMessages to Gemini Content format
