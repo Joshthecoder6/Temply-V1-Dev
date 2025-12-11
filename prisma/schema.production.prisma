@@ -106,11 +106,13 @@ model Section {
   previewImage  String?   // URL to preview image
   description   String?   // Section description
   isActive      Boolean   @default(true)
+  tier          String    @default("Lite") // "Lite" or "Premium" (AI sections get "AI Generated" at runtime)
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
   @@index([category])
   @@index([isActive])
+  @@index([tier])
 }
 
 

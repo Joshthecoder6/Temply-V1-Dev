@@ -1,17 +1,13 @@
-import OpenAI from 'openai';
+import { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold, Content, Part } from '@google/generative-ai';
 
-// Validate XAI_API_KEY exists
-if (!process.env.XAI_API_KEY) {
-  console.error('❌ XAI_API_KEY is missing! Please add it to your .env file.');
-  console.error('Get your API key from: https://console.x.ai');
+// Validate GEMINI_API_KEY exists
+if (!process.env.GEMINI_API_KEY) {
+  console.error('❌ GEMINI_API_KEY is missing! Please add it to your .env file.');
+  console.error('Get your API key from: https://ai.google.dev');
 }
 
-// Initialize X.AI client (using OpenAI SDK with X.AI base URL)
-// X.AI is API-compatible with OpenAI SDK, we just point to their endpoint
-const openai = new OpenAI({
-  apiKey: process.env.XAI_API_KEY || 'dummy-key-will-fail', // Use dummy to prevent null errors
-  baseURL: 'https://api.x.ai/v1',
-});
+// Initialize Gemini client
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || 'dummy-key-will-fail');
 
 // System prompt for section generation
 const SYSTEM_PROMPT = `You are Temply AI, an expert Shopify section developer for the Temply platform.
@@ -164,7 +160,75 @@ export interface GeneratedSection {
 }
 
 /**
- * Generate a section using X.AI Grok streaming
+ * Helper to get the model instance
+ */
+const modelName = process.env.GEMINI_MODEL || 'gemini-1.5-pro-latest';
+return genAI.getGenerativeModel({
+  model: modelName,
+  systemInstruction: SYSTEM_PROMPT,
+  safetySettings: [
+    { category: HarmCategory.HARM_CATEGORY_HARASSMENT, threshold: HarmBlockThreshold.BLOCK_NONE },
+    { category: HarmCategory.HARM_CATEGORY_HATE_SPEECH, threshold: HarmBlockThreshold.BLOCK_NONE },
+    { category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT, threshold: HarmBlockThreshold.BLOCK_NONE },
+    { category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT, threshold: HarmBlockThreshold.BLOCK_NONE },
+  ],
+});
+}
+
+/**
+ * Convert internal ChatMessages to Gemini Content format
+ */
+async function convertMessagesToGemini(messages: ChatMessage[]): Promise<Content[]> {
+  const contents: Content[] = [];
+
+  for (const msg of messages) {
+    if (msg.role === 'system') continue; // Handled via systemInstruction
+
+    const role = msg.role === 'assistant' ? 'model' : 'user';
+    const parts: Part[] = [];
+
+    // Add text content
+    let textContent = msg.content || '';
+
+    // Handle attachments
+    if (msg.attachments && msg.attachments.length > 0) {
+      for (const attachment of msg.attachments) {
+        if (attachment.type.startsWith('image/')) {
+          // Extract base64
+          const base64Data = attachment.dataUrl.split(',')[1];
+          parts.push({
+            inlineData: {
+              mimeType: attachment.type,
+              data: base64Data,
+            },
+          });
+        } else if (attachment.type === 'application/pdf') {
+          const extractedText = await extractTextFromPDF(attachment.dataUrl);
+          textContent += `\n\n[Content from ${attachment.name}]:\n${extractedText}`;
+        } else if (attachment.type === 'text/plain') {
+          const extractedText = extractTextFromTextFile(attachment.dataUrl);
+          textContent += `\n\n[Content from ${attachment.name}]:\n${extractedText}`;
+        }
+      }
+    }
+
+    if (textContent) {
+      parts.push({ text: textContent });
+    }
+
+    // Gemini requires at least one part. If message is empty but had processing fallback, ensure part exists.
+    if (parts.length === 0) {
+      parts.push({ text: ' ' });
+    }
+
+    contents.push({ role, parts });
+  }
+
+  return contents;
+}
+
+/**
+ * Generate a section using Gemini streaming
  */
 export async function generateSectionStream(
   messages: ChatMessage[],
@@ -174,39 +238,61 @@ export async function generateSectionStream(
 ) {
   try {
     // Validate API key
-    if (!process.env.XAI_API_KEY) {
-      console.error('❌ XAI_API_KEY is missing');
-      onError(new Error('X.AI API key is not configured'));
+    if (!process.env.GEMINI_API_KEY) {
+      console.error('❌ GEMINI_API_KEY is missing');
+      onError(new Error('Gemini API key is not configured'));
       return;
     }
 
-    console.log('🎬 Starting stream generation...');
+    console.log('🎬 Starting Gemini stream generation...');
     console.log('📤 Messages count:', messages.length);
 
-    const stream = await retryWithBackoff(async () => {
-      return await openai.chat.completions.create({
-        model: process.env.XAI_MODEL || 'grok-4-1-fast',
-        messages: [
-          { role: 'system', content: SYSTEM_PROMPT },
-          ...messages,
-        ],
-        temperature: parseFloat(process.env.XAI_TEMPERATURE || '0.7'),
-        max_tokens: parseInt(process.env.XAI_MAX_TOKENS || '8000'),
-        stream: true,
-      });
+    const model = getGeminiModel();
+    const geminiHistory = await convertMessagesToGemini(messages);
+
+    // We need to separate history from the new message for startChat + sendMessage
+    // If there is only 1 message, history is empty and we send that message.
+    let history: Content[] = [];
+    let lastMessageParts: string | (string | Part)[] = [];
+
+    if (geminiHistory.length > 0) {
+      const lastMsg = geminiHistory[geminiHistory.length - 1];
+      if (lastMsg.role === 'user') {
+        history = geminiHistory.slice(0, -1);
+        lastMessageParts = lastMsg.parts;
+      } else {
+        // Edge case: Last message is model? Should not happen in standard flow usually
+        history = geminiHistory;
+        lastMessageParts = "Please continue.";
+      }
+    } else {
+      lastMessageParts = "Generate the section.";
+    }
+
+    const chat = model.startChat({
+      history: history,
+      generationConfig: {
+        temperature: 0.7,
+        maxOutputTokens: 8000,
+      }
+    });
+
+    const streamResult = await retryWithBackoff(async () => {
+      // sendMessageStream accepts string, Part[], or array of mixed strings/parts
+      return await chat.sendMessageStream(lastMessageParts);
     });
 
     let fullContent = '';
     let chunkCount = 0;
 
-    console.log('📖 Reading stream...');
+    console.log('📖 Reading Gemini stream...');
 
-    for await (const chunk of stream) {
-      const content = chunk.choices[0]?.delta?.content || '';
-      if (content) {
-        fullContent += content;
+    for await (const chunk of streamResult.stream) {
+      const chunkText = chunk.text();
+      if (chunkText) {
+        fullContent += chunkText;
         chunkCount++;
-        onChunk(content);
+        onChunk(chunkText);
       }
     }
 
@@ -214,46 +300,71 @@ export async function generateSectionStream(
 
     if (!fullContent || fullContent.length === 0) {
       console.error('❌ No content received from stream');
-      onError(new Error('No content received from X.AI stream'));
+      onError(new Error('No content received from Gemini stream'));
       return;
     }
 
     // Parse the JSON response
     try {
       console.log('🔍 Parsing JSON from response...');
-
-      // Remove markdown code fences if present
-      let jsonString = fullContent;
-      const codeBlockMatch = fullContent.match(/```(?:json)?\s*(\{[\s\S]*\})\s*```/);
-      if (codeBlockMatch) {
-        jsonString = codeBlockMatch[1];
-        console.log('📦 Extracted from code block');
-      } else {
-        // Try to extract JSON object
-        const jsonMatch = fullContent.match(/\{[\s\S]*\}/);
-        if (jsonMatch) {
-          jsonString = jsonMatch[0];
-          console.log('📦 Extracted JSON object');
-        }
-      }
-
-      if (!jsonString || jsonString.length === 0) {
-        console.error('❌ No JSON found in response');
-        console.error('Response preview:', fullContent.substring(0, 500));
-        throw new Error('No valid JSON found in response');
-      }
-
-      const section = JSON.parse(jsonString) as GeneratedSection;
+      const section = parseAndSanitizeJSON(fullContent);
       console.log('🎉 Successfully parsed section');
       onComplete(section);
     } catch (parseError) {
       console.error('❌ Failed to parse LLM response:', parseError);
-      console.error('Response preview:', fullContent.substring(0, 500));
       onError(new Error('Failed to parse section from LLM response'));
     }
   } catch (error) {
-    console.error('❌ X.AI API error:', error);
+    console.error('❌ Gemini API error:', error);
     onError(error as Error);
+  }
+}
+
+/**
+ * Generate a section without streaming (simpler for testing)
+ */
+export async function generateSection(
+  messages: ChatMessage[]
+): Promise<GeneratedSection> {
+  try {
+    const model = getGeminiModel();
+    const geminiHistory = await convertMessagesToGemini(messages);
+
+    let history: Content[] = [];
+    let lastMessageParts: string | (string | Part)[] = [];
+
+    if (geminiHistory.length > 0) {
+      const lastMsg = geminiHistory[geminiHistory.length - 1];
+      if (lastMsg.role === 'user') {
+        history = geminiHistory.slice(0, -1);
+        lastMessageParts = lastMsg.parts;
+      } else {
+        history = geminiHistory;
+        lastMessageParts = "Please continue.";
+      }
+    }
+
+    const chat = model.startChat({
+      history: history,
+      generationConfig: {
+        temperature: 0.7,
+        maxOutputTokens: 8000,
+      }
+    });
+
+    const result = await retryWithBackoff(async () => {
+      return await chat.sendMessage(lastMessageParts);
+    });
+
+    const content = result.response.text();
+
+    console.log(`[Gemini] Response length: ${content.length} characters`);
+
+    return parseAndSanitizeJSON(content);
+
+  } catch (error) {
+    console.error('Gemini API error:', error);
+    throw error;
   }
 }
 
@@ -306,11 +417,13 @@ async function retryWithBackoff<T>(
     } catch (error: any) {
       lastError = error;
 
-      // Extract status code from various error formats
+      // Gemini specific error codes or generic status codes
+      // 429 = Too Many Requests
+      // 503 = Service Unavailable
+      // 500 = Internal Server Error
       const statusCode = error?.status || error?.statusCode || error?.response?.status || null;
       const errorCode = error?.code || null;
 
-      // Check if error is retryable (503, 500, 429, network errors)
       const isRetryable =
         statusCode === 503 ||
         statusCode === 500 ||
@@ -324,20 +437,11 @@ async function retryWithBackoff<T>(
         (error?.message && error.message.includes('timeout'));
 
       if (!isRetryable || attempt === maxRetries) {
-        console.error(`[X.AI] Non-retryable error or max retries reached:`, {
-          attempt: attempt + 1,
-          status: statusCode,
-          code: errorCode,
-          message: error?.message,
-          isRetryable
-        });
         throw error;
       }
 
-      // Calculate delay with exponential backoff
       const delay = baseDelay * Math.pow(2, attempt);
-      console.log(`[X.AI] Retry attempt ${attempt + 1}/${maxRetries} after ${delay}ms due to: ${error?.message || error} (status: ${statusCode || 'unknown'})`);
-
+      console.log(`[Gemini] Retry attempt ${attempt + 1}/${maxRetries} after ${delay}ms...`);
       await new Promise(resolve => setTimeout(resolve, delay));
     }
   }
@@ -346,214 +450,81 @@ async function retryWithBackoff<T>(
 }
 
 /**
- * Generate a section without streaming (simpler for testing)
+ * Helper to parse and sanitize JSON from LLM response
  */
-export async function generateSection(
-  messages: ChatMessage[]
-): Promise<GeneratedSection> {
-  try {
-    // Check if any message has attachments and determine types
-    let hasImages = false;
+function parseAndSanitizeJSON(content: string): GeneratedSection {
+  let jsonString = content;
 
-    // Process messages and handle attachments
-    const processedMessages = await Promise.all(messages.map(async (msg) => {
-      if (!msg.attachments || msg.attachments.length === 0) {
-        return {
-          role: msg.role,
-          content: msg.content
-        };
-      }
-
-      // Process attachments
-      const content: any[] = [];
-      let additionalText = msg.content;
-
-      for (const attachment of msg.attachments) {
-        if (attachment.type.startsWith('image/')) {
-          // Image attachment - use Vision API
-          hasImages = true;
-          content.push({
-            type: 'image_url',
-            image_url: {
-              url: attachment.dataUrl,
-            }
-          });
-        } else if (attachment.type === 'application/pdf') {
-          // PDF attachment - extract text
-          const extractedText = await extractTextFromPDF(attachment.dataUrl);
-          additionalText += `\n\n[Content from ${attachment.name}]:\n${extractedText}`;
-        } else if (attachment.type === 'text/plain') {
-          // Text file - extract content
-          const extractedText = extractTextFromTextFile(attachment.dataUrl);
-          additionalText += `\n\n[Content from ${attachment.name}]:\n${extractedText}`;
-        }
-      }
-
-      // If we have images, return vision format
-      if (hasImages) {
-        if (additionalText) {
-          content.unshift({
-            type: 'text',
-            text: additionalText
-          });
-        }
-        return {
-          role: msg.role,
-          content
-        };
-      }
-
-      // Otherwise return text-only format
-      return {
-        role: msg.role,
-        content: additionalText
-      };
-    }));
-
-    const completion = await retryWithBackoff(async () => {
-      return await openai.chat.completions.create({
-        model: hasImages ? 'grok-vision-beta' : (process.env.XAI_MODEL || 'grok-4-1-fast'),
-        messages: [
-          { role: 'system', content: SYSTEM_PROMPT },
-          ...processedMessages,
-        ] as any,
-        temperature: parseFloat(process.env.XAI_TEMPERATURE || '0.7'),
-        max_tokens: parseInt(process.env.XAI_MAX_TOKENS || '8000'),
-        // Note: X.AI doesn't support response_format, so we parse JSON manually
-      });
-    });
-
-    const content = completion.choices[0]?.message?.content || '';
-
-    console.log(`[X.AI] Response length: ${content.length} characters`);
-    console.log(`[X.AI] Finish reason: ${completion.choices[0]?.finish_reason}`);
-
-    // Extract JSON from response (X.AI may wrap it in markdown or text)
-    try {
-      // Try to find JSON block (could be wrapped in ```json or just raw)
-      let jsonString = content;
-
-      // Remove markdown code fences if present
-      const codeBlockMatch = content.match(/```(?:json)?\s*(\{[\s\S]*\})\s*```/);
-      if (codeBlockMatch) {
-        jsonString = codeBlockMatch[1];
-      } else {
-        // Try to extract JSON object
-        const jsonMatch = content.match(/\{[\s\S]*\}/);
-        if (jsonMatch) {
-          jsonString = jsonMatch[0];
-        }
-      }
-
-      console.log(`[X.AI] Extracted JSON length: ${jsonString.length} characters`);
-
-      if (!jsonString || jsonString.length === 0) {
-        console.error('[X.AI] No JSON found in response');
-        throw new Error('No valid JSON found in X.AI response');
-      }
-
-      // Robust JSON sanitization: XAI sometimes generates invalid JSON with unescaped characters
-      // We need to carefully escape control characters and quotes within string values
-      function sanitizeJSONString(str: string): string {
-        let result = '';
-        let inString = false;
-        let prevChar = '';
-
-        for (let i = 0; i < str.length; i++) {
-          const char = str[i];
-
-          // Track if we're inside a string value
-          if (char === '"' && prevChar !== '\\') {
-            inString = !inString;
-            result += char;
-            prevChar = char;
-            continue;
-          }
-
-          // If we're inside a string, escape special characters
-          if (inString) {
-            switch (char) {
-              case '\n':
-                result += '\\n';
-                break;
-              case '\r':
-                result += '\\r';
-                break;
-              case '\t':
-                result += '\\t';
-                break;
-              case '\b':
-                result += '\\b';
-                break;
-              case '\f':
-                result += '\\f';
-                break;
-              case '\\':
-                // Only escape if not already part of an escape sequence
-                if (str[i + 1] && 'nrtbf"\\'.includes(str[i + 1])) {
-                  result += char;
-                } else {
-                  result += '\\\\';
-                }
-                break;
-              default:
-                result += char;
-            }
-          } else {
-            // Outside string, keep as is
-            result += char;
-          }
-
-          prevChar = char;
-        }
-
-        return result;
-      }
-
-      console.log(`[X.AI] Sanitizing JSON string...`);
-      const sanitizedJSON = sanitizeJSONString(jsonString);
-      console.log(`[X.AI] Sanitized JSON (length: ${sanitizedJSON.length})`);
-
-      const section = JSON.parse(sanitizedJSON) as GeneratedSection;
-      console.log(`[X.AI] Successfully parsed section: ${section.sectionName}`);
-      return section;
-    } catch (parseError) {
-      console.error('[X.AI] ❌ Failed to parse response');
-
-      // Show detailed error context
-      if (parseError instanceof Error && parseError.message.includes('position')) {
-        const match = parseError.message.match(/position (\d+)/);
-        if (match) {
-          const errorPos = parseInt(match[1]);
-          const contextStart = Math.max(0, errorPos - 100);
-          const contextEnd = Math.min(jsonString.length, errorPos + 100);
-
-          console.error(`[X.AI] Error at position ${errorPos}:`);
-          console.error(`[X.AI] Context before: "${jsonString.substring(contextStart, errorPos)}"`);
-          console.error(`[X.AI] Context after: "${jsonString.substring(errorPos, contextEnd)}"`);
-          console.error(`[X.AI] Character at error: ${JSON.stringify(jsonString[errorPos])}`);
-        }
-      }
-
-      console.error('[X.AI] Response preview:', content.substring(0, 500));
-      console.error('[X.AI] Parse error:', parseError);
-      throw new Error(`Failed to parse section from X.AI response: ${parseError instanceof Error ? parseError.message : 'Unknown error'}`);
+  // Remove markdown code fences if present
+  const codeBlockMatch = content.match(/```(?:json)?\s*(\{[\s\S]*\})\s*```/);
+  if (codeBlockMatch) {
+    jsonString = codeBlockMatch[1];
+  } else {
+    // Try to extract JSON object
+    const jsonMatch = content.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      jsonString = jsonMatch[0];
     }
-  } catch (error) {
-    console.error('X.AI API error:', error);
-    throw error;
   }
+
+  if (!jsonString || jsonString.length === 0) {
+    throw new Error('No valid JSON found in response');
+  }
+
+  // Robust JSON sanitization
+  function sanitizeJSONString(str: string): string {
+    let result = '';
+    let inString = false;
+    let prevChar = '';
+
+    for (let i = 0; i < str.length; i++) {
+      const char = str[i];
+
+      if (char === '"' && prevChar !== '\\') {
+        inString = !inString;
+        result += char;
+        prevChar = char;
+        continue;
+      }
+
+      if (inString) {
+        switch (char) {
+          case '\n': result += '\\n'; break;
+          case '\r': result += '\\r'; break;
+          case '\t': result += '\\t'; break;
+          case '\b': result += '\\b'; break;
+          case '\f': result += '\\f'; break;
+          case '\\':
+            if (str[i + 1] && 'nrtbf"\\'.includes(str[i + 1])) {
+              result += char;
+            } else {
+              result += '\\\\';
+            }
+            break;
+          default: result += char;
+        }
+      } else {
+        result += char;
+      }
+      prevChar = char;
+    }
+    return result;
+  }
+
+  const sanitizedJSON = sanitizeJSONString(jsonString);
+  return JSON.parse(sanitizedJSON) as GeneratedSection;
 }
 
 /**
  * Validate API key
  */
-export async function validateXAIKey(): Promise<boolean> {
+export async function validateGeminiKey(): Promise<boolean> {
   try {
-    await openai.models.list();
-    return true;
+    const model = getGeminiModel();
+    const result = await model.generateContent("Test connection");
+    return !!result.response.text();
   } catch (error) {
-    console.error('X.AI API key validation failed:', error);
+    console.error('Gemini API key validation failed:', error);
     return false;
   }
 }
